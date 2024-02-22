@@ -1,14 +1,19 @@
 {
-  "name": "@fl0/template-nodejs",
+  "name": "server",
   "version": "1.0.0",
-  "description": "A simple Node.js Express app for getting started on FL0",
+  "description": "Servidor Web Socket",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js"
   },
-  "author": "",
+  "author": "Percy Villajulca",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "http": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
   }
 }
