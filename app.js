@@ -43,21 +43,18 @@ wss.on('connection', function connection(ws, request) {
                 let nombrePartida = msg.content;
                 //Validar nombre de partida
                 if(prtFact.getByNombre(nombrePartida)){ 
-                    let rsp = {type:"error",content:"ya existe una partida con ese nombre"};
-                    ws.send(JSON.stringify(rsp));
+                    enviarError(ws,"ya existe una partida con ese nombre");
                     return;
                 }
                 //verificar que jugador existe
                 ja = jugFact.getByToken(msg.token);  
                 if(!ja){
-                    let rsp = {type:"error",content:`El token indicado(${msg.token}) no es válido`};
-                    ws.send(JSON.stringify(rsp));
+                    enviarError(ws,`El token indicado(${msg.token}) no es válido`);
                     return;
                 }
                 //verificar si está en una partida
                 if(ja.idpartida!=0){
-                    let rsp = {type:"error",content:`${ja.nombre} ya está en una partida`};
-                    ws.send(JSON.stringify(rsp));
+                    enviarError(ws,`${ja.nombre} ya está en una partida`);
                     return;
                 }
                 //crear partida
@@ -81,16 +78,12 @@ wss.on('connection', function connection(ws, request) {
                 ja = jugFact.getByToken(msg.token);
                 // el usuario no existe
                 if(!ja){
-                    let rsp = {type:"error",content:`El token ${msg.token} no es válido`};
-                    ws.send(JSON.stringify(rsp));
+                    enviarError(ws,`El token ${msg.token} no es válido`);
                     return;                    
                 }
                 // El usuario ya está en una partida
-                if(ja.idpartida !== 0){                    
-                    let msj = `El jugador ${ja.nombre} ya está en una partida`;
-                    let rsp = {type:"error",content:msj};
-                    ws.send(JSON.stringify(rsp));
-                    console.log(msj);
+                if(ja.idpartida !== 0){
+                    enviarError(ws,`El jugador ${ja.nombre} ya está en una partida`);
                     return;
                 }
 
@@ -110,16 +103,12 @@ wss.on('connection', function connection(ws, request) {
                 ja = jugFact.getByToken(msg.token);
                 // el usuario no existe
                 if(!ja){
-                    let rsp = {type:"error",content:`El token ${msg.token} no es válido`};
-                    ws.send(JSON.stringify(rsp));
+                    enviarError(ws,`El token ${msg.token} no es válido`);
                     return;                    
                 }
                 //el usuario no está en una partida
                 if(ja.idpartida == 0){
-                    let msj = `El jugador ${ja.nombre} no está en una partida`;
-                    let rsp = {type:"error",content:msj};
-                    ws.send(JSON.stringify(rsp));
-                    console.log(msj);
+                    enviarError(ws,`El jugador ${ja.nombre} no está en una partida`);
                     return;
                 }
 
@@ -170,6 +159,12 @@ server.listen(port,() => {
     console.log(`WS escuchando en puerto ${port}`);
 });
 
+function enviarError(ws,mensaje){
+    let rsp = {type:"error",content:mensaje};
+    ws.send(JSON.stringify(rsp));
+    console.log(`err: ${mensaje}`);
+}
+
 function reconectarUsuario(token,ws){
     jwt.verify(token, secret, (err, decoded) => {
         if (err) {//existe un error en la verificación.
@@ -204,12 +199,12 @@ function conectarUsuario(username,ws){
         let token = jwt.sign({ data: username }, secret, { expiresIn: '1h' });
         ja.token = token;
         ja.wsclient = ws;
+        //enviar nuevo token
+        let rsp = {type:"loggedin",content:ja.minify() };
+        ws.send(JSON.stringify(rsp));
+        console.log(`El usuario ${username}(${ja.id}) ha reiniciado sesión`);        
         if(ja.idpartida === 0){ 
-            // El usuario no está en una partida            
-            let rsp = {type:"loggedin",content:ja.minify() };
-            ws.send(JSON.stringify(rsp));
-            console.log(`El usuario ${username}(${ja.id}) ha iniciado sesión`);
-
+            // El usuario no está en una partida
             let rsp1 = {type:"games",content:prtFact.listMini()};
             ws.send(JSON.stringify(rsp1));
             console.log(`El usuario ${username} ha recibido las partidas`);
