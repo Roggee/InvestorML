@@ -24,6 +24,15 @@ class Partida {
     static BOTON_ACCION_CONTINUAR   =   1;
     static BOTON_ACCION_TERMINAR    =   2;
 
+    static colores = [
+      { id: 0, nombre: "Rojo", valor: "#9C1E2E" },
+      { id: 1, nombre: "Celeste", valor: "#30A4E3" },
+      { id: 2, nombre: "Verde", valor: "#8EB926" },
+      { id: 3, nombre: "Azul", valor: "#3651AD" },
+      { id: 4, nombre: "Amarillo", valor: "#EFD200" },
+      { id: 5, nombre: "Lila", valor: "#8046DB" },
+      { id: 6, nombre: "Naranja", valor: "#FF8000" },
+    ];
     //const tablaDados = array(array(0,2,3,1,2,0),array(0,2,4,1,3,0));
 
     constructor(id,nombre) {
@@ -49,6 +58,7 @@ class Partida {
     }
     agregarJugador(jugador){
       jugador.idpartida = this.id;
+      jugador.colorId = this.getNextColor();
       this.jugadores.push(jugador);
       this.numJugadores=this.jugadores.length;
     }
@@ -56,6 +66,13 @@ class Partida {
       jugador.idpartida = 0;
       this.jugadores = this.jugadores.filter( j => j !== jugador);
       this.numJugadores=this.jugadores.length;
+    }
+    getNextColor(){
+      const cs = Partida.colores.find( c => {
+                  return !this.jugadores.find( j => j.colorId == c.id);
+                });
+      console.log(`se asignó el color ${cs.nombre}`);
+      return cs.id;
     }
 }
 

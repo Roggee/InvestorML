@@ -6,6 +6,7 @@ class Jugador{
     this.wsclient = null;
     this.idpartida = 0;
     this.ficha = "Clásico";
+    this.colorId = 0;
     this.listo = false;
   }
 
