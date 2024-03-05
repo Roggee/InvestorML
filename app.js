@@ -100,18 +100,8 @@ wss.on('connection', function connection(ws, request) {
                 });
                 break;
             case "message":
-                ja = jugFact.getByToken(msg.token);
-                // el usuario no existe
-                if(!ja){
-                    enviarError(ws,`El token ${msg.token} no es válido`);
-                    return;                    
-                }
-                //el usuario no está en una partida
-                if(ja.idpartida == 0){
-                    enviarError(ws,`El jugador ${ja.nombre} no está en una partida`);
-                    return;
-                }
-
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
                 partida = prtFact.getById(ja.idpartida);
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"message",content:`${ja.nombre}: ${msg.content}`};
@@ -148,6 +138,22 @@ wss.on('connection', function connection(ws, request) {
                 ws.close();
                 console.log(`${ja.nombre} ha dejado la partida ${partida.nombre}`);
                 break;
+            case "changeChar":
+                ja = validarJugador(msg,ws);                
+                if(!ja) return;                
+                partida =  prtFact.getById(ja.idpartida);
+                const colorId = msg.content.colorId;
+                if(partida.jugadores.find( j => j.colorId === colorId)){
+                    enviarError(ws,`El color ${Partida.colores[colorId].nombre} no está disponible`);
+                    return;
+                }
+                ja.colorId = colorId;
+                ja.ficha = msg.content.fichaNom;                
+                partida.jugadores.forEach( j => {
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
+                    j.wsclient.send(JSON.stringify(rsp));
+                });
+                break;
         }
     });
     ws.on('close', () => {
@@ -158,6 +164,21 @@ wss.on('connection', function connection(ws, request) {
 server.listen(port,() => {
     console.log(`WS escuchando en puerto ${port}`);
 });
+
+function validarJugador(msg,ws){
+    let ja = jugFact.getByToken(msg.token);
+    // el usuario no existe
+    if(!ja){
+        enviarError(ws,`El token ${msg.token} no es válido`);
+        return;
+    }
+    //el usuario no está en una partida
+    if(ja.idpartida == 0){
+        enviarError(ws,`El jugador ${ja.nombre} no está en una partida`);
+        return;
+    }
+    return ja;
+}
 
 function enviarError(ws,mensaje){
     let rsp = {type:"error",content:mensaje};
