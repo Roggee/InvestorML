@@ -99,6 +99,24 @@ wss.on('connection', function connection(ws, request) {
                     console.log(`${j.nombre} se ha unido a "${partida.nombre}"`);
                 });
                 break;
+            case "quit":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                partida = prtFact.getById(ja.idpartida);
+                partida.eliminarJugador(ja);
+                partida.jugadores.forEach( j => {
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:`${ja.nombre} ha salido de la partida`}};
+                    j.wsclient.send(JSON.stringify(rsp));
+                });
+                prtFact.cleanEmpty();
+                ja.wsclient.send(JSON.stringify({type:"loggedin",content:ja.minify() }));
+                jugFact.jugadores.forEach(j => {
+                    if(j.idpartida==0){                        
+                        j.wsclient.send(JSON.stringify({type:"games",content:prtFact.listMini()}));
+                        console.log(`El usuario ${username} ha recibido las partidas`);
+                    }
+                });
+                break;
             case "message":
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
@@ -194,6 +212,7 @@ function reconectarUsuario(token,ws){
             return;
         }
         let j = jugFact.getByToken(token);
+        if(j.wsclient) j.wsclient.close();
         j.wsclient = ws;
         let rsp = {type:"loggedin",content:j.minify()};
         ws.send(JSON.stringify(rsp));
