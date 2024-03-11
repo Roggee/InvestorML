@@ -8,6 +8,7 @@ class Jugador{
     this.ficha = "Clásico";
     this.colorId = 0;
     this.listo = false;
+    this.isHost = false;
   }
 
   minify(){
