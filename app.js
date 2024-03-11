@@ -109,9 +109,9 @@ wss.on('connection', function connection(ws, request) {
                     j.wsclient.send(JSON.stringify(rsp));
                 });
                 prtFact.cleanEmpty();
-                ja.wsclient.send(JSON.stringify({type:"loggedin",content:ja.minify() }));
+
                 jugFact.jugadores.forEach(j => {
-                    if(j.idpartida==0){                        
+                    if(j.idpartida==0){                  
                         j.wsclient.send(JSON.stringify({type:"games",content:prtFact.listMini()}));
                         console.log(`El usuario ${username} ha recibido las partidas`);
                     }
@@ -171,6 +171,25 @@ wss.on('connection', function connection(ws, request) {
                     let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
                     j.wsclient.send(JSON.stringify(rsp));
                 });
+                break;
+            case "setRules":
+                ja = validarJugador(msg,ws);                
+                if(!ja) return;
+                if(!ja.isHost) {
+                    enviarError(ws,"Sólo el anfitrión puede definir la reglas");
+                    return;
+                }
+                partida = prtFact.getById(ja.idpartida);
+                if(JSON.stringify(partida.reglas)==JSON.stringify(msg.content)){
+                    console.log("las reglas NO han cambiado");
+                    return;
+                }
+                partida.reglas = msg.content;
+                partida.jugadores.forEach( j => {
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:"Las reglas han sido actualizadas"}};
+                    j.wsclient.send(JSON.stringify(rsp));
+                });
+
                 break;
         }
     });
