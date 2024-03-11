@@ -40,7 +40,16 @@ class Partida {
       this.nombre=nombre;
       this.estado="I";
       this.maxJugadores=6;
-      this.reglas=null;
+      this.reglas={
+        modoVictoria: "lf",
+        limiteFortuna: 1000,
+        pararAnioNuevo: true,
+        repetirAnioNuevo: false,
+        turnosDescansando: 2,
+        pagoAsistenciaProf: 5,
+        salario: 0.5,
+        tributos: 5,
+      }
       this.host=null;
       this.dado1Indice=-1;
       this.dado2Indice=-1;
@@ -52,20 +61,34 @@ class Partida {
       this.jugadores = [];
     }
     minify(){
-      let strp = JSON.stringify(this,(key,value)=>{if (key=="wsclient" || key=="token") return undefined;return value;});
+      let strp = JSON.stringify(this,(key,value)=>{
+        if (key=="wsclient" || key=="token") return undefined;
+        if (key=="host") return value.id;
+        return value;
+      });
       let copia = JSON.parse(strp);
       return copia;
     }
     agregarJugador(jugador){
       jugador.idpartida = this.id;
       jugador.colorId = this.getNextColor();
+      jugador.isHost = (this.jugadores.length==0);
       this.jugadores.push(jugador);
       this.numJugadores=this.jugadores.length;
+      if(this.jugadores.length==1)this.host=jugador;
     }
     eliminarJugador(jugador){
       jugador.idpartida = 0;
+      jugador.isHost=false;
       this.jugadores = this.jugadores.filter( j => j !== jugador);
       this.numJugadores=this.jugadores.length;
+      //si no hay jugadores termina función
+      if(this.numJugadores == 0) return;
+      //si no hay un host entonces asigna al primero de la lista
+      if(!this.jugadores.find( j => j.isHost)){
+        this.jugadores[0].isHost = true;
+        this.host = this.jugadores[0];
+      }
     }
     getNextColor(){
       const cs = Partida.colores.find( c => {
