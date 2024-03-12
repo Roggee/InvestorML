@@ -191,6 +191,23 @@ wss.on('connection', function connection(ws, request) {
                 });
 
                 break;
+            case "setReady":
+                ja = validarJugador(msg,ws);                
+                if(!ja) return;
+                ja.listo = msg.content;
+                partida = prtFact.getById(ja.idpartida);
+                partida.jugadores.forEach( j => {
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
+                    j.wsclient.send(JSON.stringify(rsp));
+                });
+                //validar inicio de partida.
+                const pendientes = partida.jugadores.filter( j => !j.listo);
+                if(pendientes.length==0){
+                    console.log("Iniciando partida...");
+                }else if(pendientes.length==1 && !msg.content){
+                    console.log("Cancelando inicio de partida...");
+                }
+                break;
         }
     });
     ws.on('close', () => {
