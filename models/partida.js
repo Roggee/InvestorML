@@ -64,13 +64,14 @@ class Partida {
       let strp = JSON.stringify(this,(key,value)=>{
         if (key=="wsclient" || key=="token") return undefined;
         if (key=="host") return value.id;
+        if (key=="partida") return (value?value.id:undefined);
         return value;
       });
       let copia = JSON.parse(strp);
       return copia;
     }
     agregarJugador(jugador){
-      jugador.idpartida = this.id;
+      jugador.partida = this;
       jugador.colorId = this.getNextColor();
       jugador.isHost = (this.jugadores.length==0);
       this.jugadores.push(jugador);
@@ -78,8 +79,9 @@ class Partida {
       if(this.jugadores.length==1)this.host=jugador;
     }
     eliminarJugador(jugador){
-      jugador.idpartida = 0;
+      jugador.partida = null;
       jugador.isHost=false;
+      //jugador.ficha ="Clásico";
       this.jugadores = this.jugadores.filter( j => j !== jugador);
       this.numJugadores=this.jugadores.length;
       //si no hay jugadores termina función

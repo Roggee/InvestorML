@@ -53,7 +53,7 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 //verificar si está en una partida
-                if(ja.idpartida!=0){
+                if(ja.partida){
                     enviarError(ws,`${ja.nombre} ya está en una partida`);
                     return;
                 }
@@ -64,7 +64,7 @@ wss.on('connection', function connection(ws, request) {
                 //notificar a jugadores
                 jugFact.jugadores.forEach((j)=>{
                     //cualquier jugador que no está en una partida
-                    if(j.idpartida===0){
+                    if(!j.partida){
                         let rsp = {type:"games",content:prtFact.listMini()};
                         j.wsclient.send(JSON.stringify(rsp));
                         console.log("enviando a "+j.nombre+": "+JSON.stringify(rsp));
@@ -82,7 +82,7 @@ wss.on('connection', function connection(ws, request) {
                     return;                    
                 }
                 // El usuario ya está en una partida
-                if(ja.idpartida !== 0){
+                if(ja.partida){
                     enviarError(ws,`El jugador ${ja.nombre} ya está en una partida`);
                     return;
                 }
@@ -102,7 +102,7 @@ wss.on('connection', function connection(ws, request) {
             case "quit":
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
-                partida = prtFact.getById(ja.idpartida);
+                partida = ja.partida;
                 partida.eliminarJugador(ja);
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"game",content:{partida:partida.minify(),msj:`${ja.nombre} ha salido de la partida`}};
@@ -111,7 +111,7 @@ wss.on('connection', function connection(ws, request) {
                 prtFact.cleanEmpty();
 
                 jugFact.jugadores.forEach(j => {
-                    if(j.idpartida==0){                  
+                    if(!j.partida){                  
                         j.wsclient.send(JSON.stringify({type:"games",content:prtFact.listMini()}));
                         console.log(`El usuario ${username} ha recibido las partidas`);
                     }
@@ -120,7 +120,7 @@ wss.on('connection', function connection(ws, request) {
             case "message":
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
-                partida = prtFact.getById(ja.idpartida);
+                partida = ja.partida;
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"message",content:`${ja.nombre}: ${msg.content}`};
                     j.wsclient.send(JSON.stringify(rsp));
@@ -136,17 +136,17 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 //el usuario no está en una partida
-                if(ja.idpartida == 0){
+                if(!ja.partida){
                     jugFact.eliminarJugador(ja);
                     ws.close();
                     console.log(`El usuario ha sido eliminado`);
                     return;
                 }
                 
-                partida =  prtFact.getById(ja.idpartida);
+                partida =  ja.partida;
                 partida.eliminarJugador(ja);
                 jugFact.eliminarJugador(ja);
-                prtFact.cleanEmpty();                
+                prtFact.cleanEmpty();
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"game",content:{
                         partida:partida.minify(),
@@ -159,7 +159,7 @@ wss.on('connection', function connection(ws, request) {
             case "changeChar":
                 ja = validarJugador(msg,ws);                
                 if(!ja) return;                
-                partida =  prtFact.getById(ja.idpartida);
+                partida =  ja.partida;
                 const colorId = msg.content.colorId;
                 if(partida.jugadores.find( j => j.colorId === colorId)){
                     enviarError(ws,`El color ${Partida.colores[colorId].nombre} no está disponible`);
@@ -179,7 +179,7 @@ wss.on('connection', function connection(ws, request) {
                     enviarError(ws,"Sólo el anfitrión puede definir la reglas");
                     return;
                 }
-                partida = prtFact.getById(ja.idpartida);
+                partida = ja.partida;
                 if(JSON.stringify(partida.reglas)==JSON.stringify(msg.content)){
                     console.log("las reglas NO han cambiado");
                     return;
@@ -195,7 +195,7 @@ wss.on('connection', function connection(ws, request) {
                 ja = validarJugador(msg,ws);                
                 if(!ja) return;
                 ja.listo = msg.content;
-                partida = prtFact.getById(ja.idpartida);
+                partida = ja.partida;
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
                     j.wsclient.send(JSON.stringify(rsp));
@@ -227,7 +227,7 @@ function validarJugador(msg,ws){
         return;
     }
     //el usuario no está en una partida
-    if(ja.idpartida == 0){
+    if(!ja.partida){
         enviarError(ws,`El jugador ${ja.nombre} no está en una partida`);
         return;
     }
@@ -253,14 +253,14 @@ function reconectarUsuario(token,ws){
         let rsp = {type:"loggedin",content:j.minify()};
         ws.send(JSON.stringify(rsp));
         console.log("Sesión verificada. Token reenviado.");
-        if(j.idpartida == 0){
+        if(!j.partida){
             //El jugador NO ESTÁ en una partida
             let rsp1 = {type:"games",content:prtFact.listMini()};
             ws.send(JSON.stringify(rsp1));
             console.log(`El usuario ${j.nombre} ha recibido la lista de partidas disponibles`);
         }else{
             //El jugador YA ESTÁ en una partida
-            let p = prtFact.getById(j.idpartida);
+            let p = j.partida;
             let rsp1 = {type:"game",content:{partida:p.minify(),msj:"Te has reconectado a la partida."}};
             ws.send(JSON.stringify(rsp1));
             console.log(`El usuario ${j.nombre} ha recibido el estado actual de la partida.`);
@@ -279,14 +279,14 @@ function conectarUsuario(username,ws){
         let rsp = {type:"loggedin",content:ja.minify() };
         ws.send(JSON.stringify(rsp));
         console.log(`El usuario ${username}(${ja.id}) ha reiniciado sesión`);        
-        if(ja.idpartida === 0){ 
+        if(!ja.partida){
             // El usuario no está en una partida
             let rsp1 = {type:"games",content:prtFact.listMini()};
             ws.send(JSON.stringify(rsp1));
             console.log(`El usuario ${username} ha recibido las partidas`);
         }else{
             // El usuario ya está en una partida
-            let p = prtFact.getById(ja.idpartida);
+            let p = ja.partida;
             let rsp = {type:"game",content:{partida:p.minify(),msj:``}};
             ja.wsclient.send(JSON.stringify(rsp));
             console.log(`El usuario ${username} recibe el estado actual de la partida`);
