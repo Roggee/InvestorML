@@ -23,12 +23,12 @@ const wss = new WebSocket.WebSocketServer({ server: server });
 wss.on('connection', function connection(ws, request) {
     const qry  = url.parse(request.url, true).query;    
     let token = qry.token;
-    let username = qry.username;
     console.log(`parametros = ${JSON.stringify(qry)}`);
     if(token){//verificación de token
         reconectarUsuario(token,ws);
-    }else{//nuevo inicio de sesión
-        conectarUsuario(username,ws);
+    }else{
+        let rsp = {type:"handshake",content:jugFact.jugadores.length};
+        ws.send(JSON.stringify(rsp));
     }
 
     ws.on('error', console.error);
@@ -39,6 +39,10 @@ wss.on('connection', function connection(ws, request) {
         let ja = null;
         let partida = null;
         switch(msg.type){
+            case "login":
+                let username = msg.content;
+                conectarUsuario(username,ws);
+                break;
             case "createGame":
                 let nombrePartida = msg.content;
                 //Validar nombre de partida
@@ -113,7 +117,7 @@ wss.on('connection', function connection(ws, request) {
                 jugFact.jugadores.forEach(j => {
                     if(!j.partida){                  
                         j.wsclient.send(JSON.stringify({type:"games",content:prtFact.listMini()}));
-                        console.log(`El usuario ${username} ha recibido las partidas`);
+                        console.log(`El usuario ${ja.nombre} ha recibido las partidas`);
                     }
                 });
                 break;
@@ -157,7 +161,7 @@ wss.on('connection', function connection(ws, request) {
                 console.log(`${ja.nombre} ha dejado la partida ${partida.nombre}`);
                 break;
             case "changeChar":
-                ja = validarJugador(msg,ws);                
+                ja = validarJugador(msg,ws);
                 if(!ja) return;                
                 partida =  ja.partida;
                 const colorId = msg.content.colorId;
@@ -173,7 +177,7 @@ wss.on('connection', function connection(ws, request) {
                 });
                 break;
             case "setRules":
-                ja = validarJugador(msg,ws);                
+                ja = validarJugador(msg,ws);
                 if(!ja) return;
                 if(!ja.isHost) {
                     enviarError(ws,"Sólo el anfitrión puede definir la reglas");
@@ -192,7 +196,7 @@ wss.on('connection', function connection(ws, request) {
 
                 break;
             case "setReady":
-                ja = validarJugador(msg,ws);                
+                ja = validarJugador(msg,ws);
                 if(!ja) return;
                 ja.listo = msg.content;
                 partida = ja.partida;
@@ -271,14 +275,15 @@ function reconectarUsuario(token,ws){
 
 function conectarUsuario(username,ws){
     let ja = jugFact.getByNombre(username);
-    if(ja){
-        let token = jwt.sign({ data: username }, secret, { expiresIn: '1h' });
+    let token = jwt.sign({ data: username }, secret, { expiresIn: '1h' });
+    if(ja){        
         ja.token = token;
+        if(ja.wsclient) ja.wsclient.close();
         ja.wsclient = ws;
         //enviar nuevo token
         let rsp = {type:"loggedin",content:ja.minify() };
         ws.send(JSON.stringify(rsp));
-        console.log(`El usuario ${username}(${ja.id}) ha reiniciado sesión`);        
+        console.log(`El usuario ${username}(${ja.id}) ha reiniciado sesión`);
         if(!ja.partida){
             // El usuario no está en una partida
             let rsp1 = {type:"games",content:prtFact.listMini()};
@@ -292,7 +297,6 @@ function conectarUsuario(username,ws){
             console.log(`El usuario ${username} recibe el estado actual de la partida`);
         }
     } else {
-        let token = jwt.sign({ data: username }, secret, { expiresIn: '1h' });
         let j = jugFact.crearJugador(username,token,ws);
         let rsp = {type:"loggedin",content:j.minify() };
         ws.send(JSON.stringify(rsp));
