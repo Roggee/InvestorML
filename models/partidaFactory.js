@@ -23,7 +23,8 @@ class PartidaFactory{
     }
     listMini(){
         let minPartidas = [];
-        this.partidas.forEach((p)=>{ minPartidas.push({id:p.id,nombre:p.nombre,pop:(p.numJugadores+"/"+p.maxJugadores)})});
+        let disponibles = this.partidas.filter(p => p.estado==Partida.PREPARACION);
+        disponibles.forEach((p)=>{ minPartidas.push({id:p.id,nombre:p.nombre,pop:(p.numJugadores+"/"+p.maxJugadores)}) });
         return minPartidas;
     }
     cleanEmpty(){
