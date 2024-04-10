@@ -1,3 +1,5 @@
+const Jugador = require("./jugador");
+
 class Partida {
     static PQT_COMPLETO             =   1;
     static PQT_CAMINANDO            =   2;
@@ -39,7 +41,7 @@ class Partida {
       this.id=id;
       this.nombre=nombre;
       this.estado="I";
-      this.maxJugadores=6;
+      this.maxJugadores=2;
       this.reglas={
         modoVictoria: "lf",
         limiteFortuna: 1000,
@@ -70,13 +72,20 @@ class Partida {
       let copia = JSON.parse(strp);
       return copia;
     }
+    /**
+     * 
+     * @param {Jugador} jugador 
+     * @returns true si el jugador pudo entrar. De lo contrario devuelve false si la partida ya esta llena
+     */
     agregarJugador(jugador){
+      if(this.maxJugadores == this.jugadores.length) return false;
       jugador.partida = this;
       jugador.colorId = this.getNextColor();
       jugador.isHost = (this.jugadores.length==0);
       this.jugadores.push(jugador);
       this.numJugadores=this.jugadores.length;
       if(this.jugadores.length==1)this.host=jugador;
+      return true;
     }
     eliminarJugador(jugador){
       jugador.partida = null;
@@ -98,6 +107,24 @@ class Partida {
                 });
       console.log(`se asignó el color ${cs.nombre}`);
       return cs.id;
+    }
+    setCondicionesIniciales(){
+      this.jugadores.forEach( j => j.reset());
+      //se asigna de forma aleatoria el orden de los jugadores.
+      this.sortearOrdenYPosRelJugadores();
+      //estado iniciando
+      this.estado = INICIANDO;
+    }
+    sortearOrdenYPosRelJugadores(){
+      //definir arreglo de consecutivos
+      const array = Array.from({ length: this.jugadores.length }, (_, i) => i);
+      //ordenar aleatoriamente
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      //asignar nuevo orden
+      this.jugadores.forEach((j,index) => j.orden = array[index]);
     }
 }
 
