@@ -9,6 +9,16 @@ class Jugador{
     this.colorId = 0;
     this.listo = false;
     this.isHost = false;
+    this.posicion = 60;
+    this.fichaEstado = 0;
+    this.numTarjSueldo = 1;
+    this.efectivo = 20.0;
+    this.utilidadAnual = 0.0;
+    this.pagares = [true,true,true,true,true];
+    this.bancaRota = false;
+    this.turnosDescanso = 0;
+    this.deuda = 0.0;
+    this.orden = 0; // tambión indica posición interna dentro de la casilla
   }
 
   minify(){
@@ -19,6 +29,19 @@ class Jugador{
     });
     let copia = JSON.parse(strp);
     return copia;
+  }
+
+  reset(){
+    this.posicion = 60;
+    this.fichaEstado = 0;
+    this.numTarjSueldo = 1;
+    this.efectivo = 20.0;
+    this.utilidadAnual = 0.0;
+    this.pagares = [true,true,true,true,true];
+    this.bancaRota = false;               
+    this.turnosDescanso = 0;                
+    this.deuda = 0.0;
+    this.orden = 0;
   }
 }
 
