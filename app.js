@@ -3,7 +3,6 @@ const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const Partida = require('./models/partida');
-const Jugador = require('./models/jugador');
 const url = require("url");
 const jwt = require('jsonwebtoken');
 const JugadorFactory = require("./models/jugadorFactory.js");
@@ -93,15 +92,18 @@ wss.on('connection', function connection(ws, request) {
 
                 let idp = msg.content;
                 partida = prtFact.getById(idp);
-                partida.agregarJugador(ja);
-                partida.jugadores.forEach( j => {
-                    let rsp = {type:"game",content:{
-                        partida:partida.minify(),
-                        msj:(j.id === ja.id?`Hola ${j.nombre}, te has unido a ${partida.nombre}`:
-                                            `${ja.nombre} se ha unido a la partida`)}};
-                    j.wsclient.send(JSON.stringify(rsp));
-                    console.log(`${j.nombre} se ha unido a "${partida.nombre}"`);
-                });
+                if(partida.agregarJugador(ja)){
+                    partida.jugadores.forEach( j => {
+                        let rsp = {type:"game",content:{
+                            partida:partida.minify(),
+                            msj:(j.id === ja.id?`Hola ${j.nombre}, te has unido a ${partida.nombre}`:
+                                                `${ja.nombre} se ha unido a la partida`)}};
+                        j.wsclient.send(JSON.stringify(rsp));
+                        console.log(`${j.nombre} se ha unido a "${partida.nombre}"`);
+                    });
+                }else{
+                    enviarError(ws,`La partida ya está llena`);
+                }                
                 break;
             case "quit":
                 ja = validarJugador(msg,ws);
@@ -205,12 +207,54 @@ wss.on('connection', function connection(ws, request) {
                     j.wsclient.send(JSON.stringify(rsp));
                 });
                 //validar inicio de partida.
-                const pendientes = partida.jugadores.filter( j => !j.listo);
-                if(pendientes.length==0){
-                    console.log("Iniciando partida...");
-                }else if(pendientes.length==1 && !msg.content){
+                const listos = partida.jugadores.filter( j => j.listo);
+                if(listos.length==partida.maxJugadores){
+                    console.log(`Iniciando "${partida.nombre}"...`);
+                    partida.setCondicionesIniciales();
+                    partida.jugadores.forEach( j => {
+                        let rsp = {type:"game",content:{partida:partida.minify(),msj:"Iniciando..."}};
+                        j.wsclient.send(JSON.stringify(rsp));
+                    });
+                    //Simular inicio partida.iniciar
+                    setTimeout(() => {
+                        partida.estado = Partida.INICIO_TURNO;
+                        partida.jugadores.forEach( j => {
+                            let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
+                            j.wsclient.send(JSON.stringify(rsp));
+                        });
+                    },3*1000);
+                }else if(listos.length==partida.maxJugadores-1 && !msg.content){
                     console.log("Cancelando inicio de partida...");
                 }
+                break;
+            case "setMaxPlayers":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(!ja.isHost) {
+                    enviarError(ws,"Sólo el anfitrión puede definir la cantidad de jugadores");
+                    return;
+                }
+                partida = ja.partida;
+                let mj = msg.content;
+                //validar que la cantidad máxima ingresada no sea menor que la cantidad actual de jugadores
+                if(partida.jugadores.length > mj){
+                    enviarError(ws,"La cantidad maxima de jugadores no puede disminuir");
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
+                    ja.wsclient.send(JSON.stringify(rsp));
+                    return;
+                }
+                //asignar máximo de jugadores
+                partida.maxJugadores = mj;
+                partida.jugadores.forEach( j => {
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
+                    j.wsclient.send(JSON.stringify(rsp));
+                });
+                //enviar a jugadores que no estan en partida para que vean el nuevo límite
+                const sinPartida = jugFact.jugadores.filter( j => !j.partida);
+                sinPartida.forEach( j => {
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
+                    j.wsclient.send(JSON.stringify(rsp));
+                });
                 break;
         }
     });
