@@ -90,6 +90,7 @@ class Partida {
     eliminarJugador(jugador){
       jugador.partida = null;
       jugador.isHost=false;
+      jugador.listo=false;
       //jugador.ficha ="Clásico";
       this.jugadores = this.jugadores.filter( j => j !== jugador);
       this.numJugadores=this.jugadores.length;
@@ -113,7 +114,7 @@ class Partida {
       //se asigna de forma aleatoria el orden de los jugadores.
       this.sortearOrdenYPosRelJugadores();
       //estado iniciando
-      this.estado = INICIANDO;
+      this.estado = Partida.INICIANDO;
     }
     sortearOrdenYPosRelJugadores(){
       //definir arreglo de consecutivos
