@@ -167,8 +167,12 @@ wss.on('connection', function connection(ws, request) {
                 if(!ja) return;                
                 partida =  ja.partida;
                 const colorId = msg.content.colorId;
-                if(partida.jugadores.find( j => j.colorId === colorId)){
+                if(partida.jugadores.find( j => j.colorId === colorId && j.id !== ja.id)){
                     enviarError(ws,`El color ${Partida.colores[colorId].nombre} no está disponible`);
+                    return;
+                }
+                if(ja.colorId === colorId && ja.ficha === msg.content.fichaNom){
+                    console.log("No ha cambiado ni la ficha ni el color");
                     return;
                 }
                 ja.colorId = colorId;
