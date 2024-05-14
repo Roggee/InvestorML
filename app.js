@@ -219,9 +219,8 @@ wss.on('connection', function connection(ws, request) {
                         let rsp = {type:"game",content:{partida:partida.minify(),msj:"Iniciando..."}};
                         j.wsclient.send(JSON.stringify(rsp));
                     });
-                    //Simular inicio partida.iniciar
                     setTimeout(() => {
-                        partida.estado = Partida.INICIO_TURNO;
+                        partida.iniciar();
                         partida.jugadores.forEach( j => {
                             let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
                             j.wsclient.send(JSON.stringify(rsp));
@@ -269,6 +268,12 @@ wss.on('connection', function connection(ws, request) {
 
 server.listen(port,() => {
     console.log(`WS escuchando en puerto ${port}`);
+    // const THREE = require('three');
+    // let p = new THREE.Matrix4();
+    // p.makeRotationY(Math.PI/2);
+    // console.log(p);
+    // p.makeTranslation(2,3,5);
+    // console.log(p);
 });
 
 function validarJugador(msg,ws){
