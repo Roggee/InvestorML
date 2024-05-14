@@ -1,4 +1,5 @@
 const Jugador = require("./jugador");
+const Tablero = require("./tablero");
 
 class Partida {
     static PQT_COMPLETO             =   1;
@@ -61,12 +62,14 @@ class Partida {
       this.ganador = 0; //si es diferente de cero entonces hay un ganador
       this.numJugadores = 0;
       this.jugadores = [];
+      this.tablero = null;
     }
     minify(){
       let strp = JSON.stringify(this,(key,value)=>{
-        if (key=="wsclient" || key=="token") return undefined;
+        if (key=="wsclient" || key=="token" || key=="casillerosDef") return undefined;
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
+        if (key=="jugadorActual") return (value?value.id:undefined);
         return value;
       });
       let copia = JSON.parse(strp);
@@ -124,8 +127,37 @@ class Partida {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
       }
-      //asignar nuevo orden
-      this.jugadores.forEach((j,index) => j.orden = array[index]);
+      //asignar nuevo orden y posicion relativa igual a al orden por ser la primera vez.
+      this.jugadores.forEach((j,index) => {
+        j.orden = array[index];
+        j.posRelativa = array[index];
+      });
+    }
+    /**
+     * Se define el jugador actual
+     */
+    iniciar(){
+      this.jugadorActual = this.jugadores.find( j => j.orden == 0 );
+      this.tablero = new Tablero(this);
+      this.tablero.updatePosInternasCasilla();
+      this.tablero.permitirCambiarCarril(this.jugadorActual.posicion);
+      this.calcularCoordenadasIniciales();
+      this.inicializarTurno();
+    }
+    /**
+     * calcula las coordenadas iniciales de todos los jugadores de la partida indicada
+     */  
+    calcularCoordenadasIniciales(){
+      this.jugadores.forEach(j => j.calcularTransformacionInicial());
+    }
+    /**
+     * Cambia el estado de la partida a INICIO_TURNO y el boton de acción a Lanzar
+     */
+    inicializarTurno(){
+      this.btnAccion = Partida.BOTON_ACCION_LANZAR;
+      this.jugadorActual.fichaEstado = Jugador.FICHA_ESTADO_SALUDO;
+      this.jugadorActual.calcularTransformacionInicial();
+      this.estado = Partida.INICIO_TURNO;
     }
 }
 

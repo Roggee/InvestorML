@@ -1,16 +1,23 @@
+const Casillas = require('./casillas');
+const THREE = require('three');
+
 class Jugador{
+  static FICHA_ESTADO_ESPERAR = 1;
+  static FICHA_ESTADO_CAMINAR = 0;
+  static FICHA_ESTADO_SALUDO  = 2;
+
   constructor(id,nombre) {
     this.id=id;
     this.token="";
     this.nombre=nombre;
     this.wsclient = null;
     this.partida = null;
-    this.ficha = "Clásico";
     this.colorId = 0;
+    this.ficha = "Clásico";
+    this.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
     this.listo = false;
     this.isHost = false;
     this.posicion = 60;
-    this.fichaEstado = 0;
     this.numTarjSueldo = 1;
     this.efectivo = 20.0;
     this.utilidadAnual = 0.0;
@@ -18,7 +25,9 @@ class Jugador{
     this.bancaRota = false;
     this.turnosDescanso = 0;
     this.deuda = 0.0;
-    this.orden = 0; // tambión indica posición interna dentro de la casilla
+    this.orden = 0;
+    this.posRelativa = -1; // la posición dentro de casilla.
+    this.fichaTransform = null;
   }
 
   minify(){
@@ -33,7 +42,7 @@ class Jugador{
 
   reset(){
     this.posicion = 60;
-    this.fichaEstado = 0;
+    this.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
     this.numTarjSueldo = 1;
     this.efectivo = 20.0;
     this.utilidadAnual = 0.0;
@@ -43,6 +52,27 @@ class Jugador{
     this.deuda = 0.0;
     this.orden = 0;
   }
+  /**
+   * Calcular posición y postura según si es jugador actual o no
+   */
+  calcularTransformacionInicial(){
+    let p = new THREE.Matrix4();
+    let transformacion = new THREE.Matrix4();
+    if(this.id == this.partida.jugadorActual.id){
+      p.makeRotationY(-Math.PI/2);
+    }else{
+      let vpi = Casillas.POS_INTERNAS[this.posRelativa];
+      transformacion.makeTranslation(vpi[0],vpi[1],vpi[2]);
+      //console.log(`jugador `+this.nombre+` posInterna [`+vpi+'] por '+this.posRelativa);
+    }
+    transformacion.multiply(p);
+    let csl = this.partida.tablero.casillerosDef.items[this.posicion];
+    //console.log(`jugador `+this.nombre+` Coords [`+csl.coords+'] por '+this.posicion);
+    p.makeTranslation(csl.coords[0],csl.coords[1],csl.coords[2]);
+    transformacion.premultiply(p);
+    this.fichaTransform = transformacion.toArray();
+  }
+
 }
 
 module.exports = Jugador;
