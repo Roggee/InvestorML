@@ -7,6 +7,9 @@ const url = require("url");
 const jwt = require('jsonwebtoken');
 const JugadorFactory = require("./models/jugadorFactory.js");
 const PartidaFactory = require("./models/partidaFactory.js");
+const Ruta = require('./models/ruta.js');
+const Jugador = require('./models/jugador.js');
+const THREE = require('three');
 
 //token secret
 let secret = '1nv3$t0r';
@@ -79,7 +82,7 @@ wss.on('connection', function connection(ws, request) {
                 break;
             case "join":
                 ja = jugFact.getByToken(msg.token);
-                // el usuario no existe
+                // El usuario no existe
                 if(!ja){
                     enviarError(ws,`El token ${msg.token} no es válido`);
                     return;                    
@@ -92,7 +95,12 @@ wss.on('connection', function connection(ws, request) {
 
                 let idp = msg.content;
                 partida = prtFact.getById(idp);
+                if(!partida){
+                    enviarError(ws,`No puedes unirte a la partida "${idp}" porque no existe`);
+                    break;
+                }
                 if(partida.agregarJugador(ja)){
+                    //notificar a los jugadores de la partida
                     partida.jugadores.forEach( j => {
                         let rsp = {type:"game",content:{
                             partida:partida.minify(),
@@ -100,6 +108,13 @@ wss.on('connection', function connection(ws, request) {
                                                 `${ja.nombre} se ha unido a la partida`)}};
                         j.wsclient.send(JSON.stringify(rsp));
                         console.log(`${j.nombre} se ha unido a "${partida.nombre}"`);
+                    });
+                    //notificar a los jugadores sin partida
+                    jugFact.jugadores.forEach(j => {
+                        if(!j.partida){                  
+                            j.wsclient.send(JSON.stringify({type:"games",content:prtFact.listMini()}));
+                            console.log(`El usuario ${ja.nombre} ha recibido las partidas`);
+                        }
                     });
                 }else{
                     enviarError(ws,`La partida ya está llena`);
@@ -225,7 +240,7 @@ wss.on('connection', function connection(ws, request) {
                             let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
                             j.wsclient.send(JSON.stringify(rsp));
                         });
-                    },3*1000);
+                    },2*1000);
                 }else if(listos.length==partida.maxJugadores-1 && !msg.content){
                     console.log("Cancelando inicio de partida...");
                 }
@@ -253,11 +268,26 @@ wss.on('connection', function connection(ws, request) {
                     j.wsclient.send(JSON.stringify(rsp));
                 });
                 //enviar a jugadores que no estan en partida para que vean el nuevo límite
-                const sinPartida = jugFact.jugadores.filter( j => !j.partida);
-                sinPartida.forEach( j => {
-                    let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
-                    j.wsclient.send(JSON.stringify(rsp));
+                jugFact.jugadores.forEach(j => {
+                    if(!j.partida){                  
+                        j.wsclient.send(JSON.stringify({type:"games",content:prtFact.listMini()}));
+                        console.log(`El usuario ${ja.nombre} ha recibido las partidas`);
+                    }
                 });
+                break;
+            case "seleccionarCasilla":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                //calcular ruta y estado ficha
+                const ruta = evaluarSeleccionCasilla(ja,partida,msg.content);
+                partida.transmitir();
+                //calcular pasos
+                avanzarCaminata(ja,ruta);
                 break;
         }
     });
@@ -268,13 +298,127 @@ wss.on('connection', function connection(ws, request) {
 
 server.listen(port,() => {
     console.log(`WS escuchando en puerto ${port}`);
-    // const THREE = require('three');
-    // let p = new THREE.Matrix4();
-    // p.makeRotationY(Math.PI/2);
-    // console.log(p);
-    // p.makeTranslation(2,3,5);
-    // console.log(p);
 });
+
+function evaluarSeleccionCasilla(jugador,partida,idcasilla){
+    switch(partida.estado){
+        case Partida.INICIO_TURNO:
+        case Partida.FINALIZANDO_TURNO:
+            return evaluarCambioCamino(jugador, idcasilla);
+        case Partida.DECIDIENDO_CAMINO:
+            //$this->evaluarJugadorDecideCamino($idjugador, $idpartida, $idcasilla, $cnn);
+            break;
+        case Partida.COMPRANDO_OF_OP:
+            //$this->evaluarCompraOFOP($idjugador,$idpartida,$idcasilla,$cnn);
+            break;
+        case Partida.FUSIONANDO:
+            //$this->evaluarFusionaTitulo($idpartida,$idjugador,$idcasilla,$cnn);
+            break;
+        case Partida.FRACASANDO:
+            //$this->evaluarDevuelveTitulo($idpartida,$idjugador,$idcasilla,$cnn);
+            break;
+        case Partida.DECIDIENDO_SUERTE:
+            //$this->evaluarDecidirSuerte($idpartida,$idjugador,$idcasilla,$cnn);
+            break;
+    }    
+}
+function evaluarCambioCamino(jugador, idcasilla) {
+    const casDef = jugador.partida.tablero.casillerosDef.items;
+    const partida = jugador.partida;
+    const rutaEsp = casDef[jugador.posicion].rutaEspecial;
+    let ruta;
+    if(rutaEsp && rutaEsp.ruta[rutaEsp.ruta.length-1]==idcasilla){
+        ruta = new Ruta(rutaEsp.ruta,0);
+    }else{
+        ruta = new Ruta([jugador.posicion,idcasilla],0);
+    }
+    console.log(JSON.stringify(ruta));
+    // TODO: revisar necesidad de clase Variables
+    // $vars = new Variables();
+    // $vars->guardar($idpartida,"ruta",json_encode($ruta), $cnn);
+    partida.estadoInicial = partida.estado;
+    jugador.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
+    partida.tablero.limpiar();
+    partida.estado = Partida.CAMINANDO;
+    //const trp = partida.tablero.casilleros[idcasilla].transparencia;
+    //partida.tablero.casilleros[idcasilla].transparencia = trp<1? 1: 0.5;
+    return ruta;
+}
+
+function avanzarCaminata(jugador,ruta){
+    const numSegmentos = 25;
+    const casDef = jugador.partida.tablero.casillerosDef.items;
+    const Vangle = new THREE.Vector3();
+    const P = new THREE.Vector3();
+    const temp = new THREE.Matrix4();
+    const transformacion = new THREE.Matrix4();
+    let [ini,fin,iSegmento,iCasillaActual] = [0,0,0,0];
+    //console.log(`avanzarCaminata: ${JSON.stringify(ruta)}`);
+    jugador.fichaEstado = Jugador.FICHA_ESTADO_CAMINAR;
+    const intervalID = setInterval(()=> {
+        if(iCasillaActual<ruta.getLongitud()){
+            transformacion.identity();
+            iSegmento++;
+            if(iSegmento<numSegmentos){
+                if(iSegmento==1){
+                    ini = ruta.get(iCasillaActual);
+                    fin = ruta.get(iCasillaActual+1);
+                    Vangle.subVectors(casDef[fin].coords,casDef[ini].coords);
+                }
+                P.lerpVectors(casDef[ini].coords,casDef[fin].coords,iSegmento/numSegmentos);
+            }else{
+                iSegmento = 0;                            
+                iCasillaActual++;
+                const v = casDef[ruta.get(iCasillaActual)].coords;
+                P.copy(v);
+            }
+            const giro = Math.atan2(-Vangle.z,Vangle.x);
+            temp.makeRotationY(giro);
+            transformacion.multiply(temp);
+            temp.makeTranslation(P);
+            transformacion.premultiply(temp);
+            const idCasillaActual = ruta.get(iCasillaActual);
+            jugador.posicion = idCasillaActual;
+            jugador.fichaTransform = transformacion.toArray();
+            jugador.transmitir();
+            //console.log("caminando...");
+        }else{
+            clearInterval(intervalID);
+            terminarCaminata(jugador,ruta,false);
+        }
+    },100);
+}
+
+function terminarCaminata(jugador,ruta,forzado){
+    //iSegmento=0;
+    //iCasillaActual = 0;
+    //setEnable(false);
+    //ServicioPartida.SP().terminarCaminata(forzado);
+    jugador.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
+    jugador.transmitir();
+    //se espera antes de proceder con la evaluación de la casilla para apreciar donde cayó
+    setTimeout(() => {
+        evaluarDestino(jugador, ruta);
+        jugador.partida.transmitir();
+    }, 500);
+}
+
+function evaluarDestino(jugador, ruta) {
+    jugador.partida.estado = Partida.EVALUANDO_DESTINO;
+    
+    if(ruta.getLongitud()!=7){ //NO es feriado
+        evaluarFinCaminoLaboral(jugador,ruta);
+    }else{ //es un feriado
+        // $dialogo = new Dialogo();
+        // $dialogo->abrir($idpartida, Dialogo::AVISO_FERIADO, "Es feriado. Puedes descansar...zzZ", $cnn);
+        console.log("pendiente implementar Feriado");
+    }
+}
+function evaluarFinCaminoLaboral(jugador,ruta) {
+    //$this->cobrarSueldo($idpartida,$jugador,$ruta->numMeses,$cnn); //cobrar sueldo por los meses pasados
+    //if($partida->evaluarGanador($idpartida, $cnn)) return;
+    jugador.partida.tablero.procesarCasilla(jugador,ruta); //procesa CASILLA ACTUAL
+}
 
 function validarJugador(msg,ws){
     let ja = jugFact.getByToken(msg.token);
