@@ -1,4 +1,5 @@
 const Casillas = require("./casillas");
+
 class Tablero{
 
     static COLOR_PREDET = '0C0C0C'; //color neutro para todas las posiciones = 82, 98, 122 = 52627A
@@ -60,96 +61,100 @@ class Tablero{
     //     }
     //     return $this;
     // }
-    // public function procesarCasilla(Ruta $ruta,Jugador $jugador,$idpartida,Conexion $cnn){        
-    //     $partida = new Partida();
-    //     $idcasilla = $jugador->posicion;
-    //     $casilla = new Casilla();
-    //     $casilla->loadMeta($idcasilla, $cnn);
-    //     switch($casilla->tipo){            
-    //         case Casilla::TIPO_TITULO_INVR:
-    //             $titulo = new Titulo();
-    //             $titulo->load($idpartida, $idcasilla, $cnn);
-    //             //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
-    //             //Para un titulo de inversión sólo existe un poseedor
-    //             $dialogo = new Dialogo();
-    //             if(count($titulo->poseedores)==0 || ($titulo->poseedores[0] == $jugador->id && $titulo->cantDisponible > 0)){
-    //                 //activar ventana de compra de título con id casilla e id de jugador.
-    //                 $dialogo->abrir($idpartida, Dialogo::COMPRAR_TITULO, "$idcasilla|$jugador->id", $cnn);
-    //             }else if($titulo->poseedores[0] != $jugador->id){ //si alguién mas ya lo compro se le tiene pagar
-    //                 $resultado = $jugador->pagarUtilidades($jugador->id,$titulo->poseedores[0],$titulo,$cnn);
-    //                 if($resultado){ //se la logrado pagar la deuda
-    //                     $dialogo->abrir($idpartida, Dialogo::AVISO_PAGO_JUGADOR, $resultado, $cnn);
-    //                     $partida->escribirNota($idpartida, $resultado, $cnn);
-    //                 }else{ //no se pudo pagar la deuda. Insolvente
-    //                     $deuda = $jugador->calcularPago($titulo->poseedores[0],$titulo,$cnn);
-    //                     $variable = new Variables();
-    //                     // al ser un título de inversión se tiene sólo un poseedor por lo que lo que se entrega es una lista de 1.
-    //                     $variable->guardar($idpartida, "acreedores", json_encode($titulo->poseedores), $cnn);
-    //                     $variable->guardar($idpartida, "deuda",$deuda, $cnn);
-    //                     $dialogo->abrir($idpartida, Dialogo::DECLARAR_BANCAROTA, "$jugador->id", $cnn);
-    //                 }
-    //             }else{
-    //                 $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
-    //                 $partida->finalizarTurno($idpartida,$cnn);
-    //             }
-    //             break;
-    //         case Casilla::TIPO_TITULO_PROF:
-    //             $titulo = new Titulo();
-    //             $titulo->load($idpartida, $idcasilla, $cnn);                
-    //             $tieneProfesion = $jugador->getCantidadTitulos($jugador->id, $idcasilla, $cnn)>0;
-    //             if(!$tieneProfesion){
-    //                 if($titulo->cantDisponible>0){//si hay para vender
-    //                     $dialogo = new Dialogo();
-    //                     $dialogo->abrir($idpartida, Dialogo::COMPRAR_TITULO, "$idcasilla|$jugador->id", $cnn);
-    //                 }else {
-    //                     $partida->escribirNota($idpartida, "Ya no hay títulos disponibles", $cnn);
-    //                     $partida->finalizarTurno($idpartida,$cnn);
-    //                 }
-    //             }else{
-    //                 $partida->escribirNota($idpartida, "@j$jugador->id ya es $casilla->nombre", $cnn);
-    //                 $partida->finalizarTurno($idpartida,$cnn);
-    //             }
-    //             break;
-    //         case Casilla::TIPO_COMODIN:                
-    //             $dialogo = new Dialogo();
-    //             $dialogo->abrir($idpartida, Dialogo::COMODIN, "$casilla->id", $cnn);
-    //             $variable = new Variables();
-    //             //vuelve a evaluar casilla luego de un CONTINUAR?
-    //             if($variable->tomar($idpartida, "deuda", $cnn)){
-    //                 //se eliminan las variables de deuda porque se volvera a evaluar el estado y de ser necesario se vuelven a crear.
-    //                 $variable->tomar($idpartida, "acreedores", $cnn); 
-    //                 $dialogo->cerrar($idpartida, $dialogo->iddialogo, $cnn);
-    //                 $servidorML = new ServidorML();
-    //                 //entrará a evaluar cierra de comodín                    
-    //                 $servidorML->evaluarCierreComodin($casilla->id,$jugador->id,$idpartida,$cnn);
-    //             }
-    //             break;
-    //         default: //Año nuevo, Festividades, Meses,
-    //             $partida->getPorId($idpartida, $cnn, true, true);
-    //             $reglas = $partida->reglas;
-    //             //validar si se debe cobrar utilidad
-    //             if(!$ruta->EsCambioCarrilAnioNuevo()&&($casilla->esAnioNuevo()&&$jugador->utilidadAnual!=0) && 
-    //                ($partida->dadosValor!=0||($partida->dadosValor==0 && $reglas->repetirAnioNuevo))){
-    //                 $dialogo = new Dialogo();
-    //                 $mensaje = "@j$jugador->id ha cobrado sus utilidades por @d$jugador->utilidadAnual";
-    //                 $dialogo->abrir($idpartida, Dialogo::AVISO_COBRAR_UTILIDAD, $mensaje, $cnn);                    
-    //             }
-    //             //el cambio de carril permite continuar en el mismo estado de partida con el mismo jugador luego que la caminata termine.
-    //             this.permitirCambiarCarril($jugador->posicion, $idpartida, $cnn);        
-    //             //asignar estado guardado si existe
-    //             $vars = new Variables();
-    //             $estado = $vars->tomar($idpartida, "estadoInicial", $cnn);
-    //             if($estado==Partida::INICIO_TURNO){
-    //                 $partida->inicializarTurno($idpartida, $cnn);
-    //             }else{
-    //                 $partida->finalizarTurno($idpartida, $cnn);
-    //             }
-    //     }        
-    // }
-    // public function limpiar($idpartida,Conexion $cnn){
-    //     $color = Tablero::colorPredet;
-    //     $cnn->consultar("UPDATE mls_tablero SET elegible = false,transparencia=1.0,color = '$color' WHERE idpartida = $idpartida");
-    // }
+    procesarCasilla(jugador,ruta){        
+        const partida = jugador.partida;
+        const idcasilla = jugador.posicion;
+        const casilla = jugador.partida.tablero.casillerosDef.items[idcasilla];
+        const casillas = jugador.partida.tablero.casillerosDef;
+        switch(casilla.tipo){
+            case Casillas.TIPO_TITULO_INVR:
+                // $titulo = new Titulo();
+                // $titulo->load($idpartida, $idcasilla, $cnn);
+                // //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
+                // //Para un titulo de inversión sólo existe un poseedor
+                // $dialogo = new Dialogo();
+                // if(count($titulo->poseedores)==0 || ($titulo->poseedores[0] == $jugador->id && $titulo->cantDisponible > 0)){
+                //     //activar ventana de compra de título con id casilla e id de jugador.
+                //     $dialogo->abrir($idpartida, Dialogo::COMPRAR_TITULO, "$idcasilla|$jugador->id", $cnn);
+                // }else if($titulo->poseedores[0] != $jugador->id){ //si alguién mas ya lo compro se le tiene pagar
+                //     $resultado = $jugador->pagarUtilidades($jugador->id,$titulo->poseedores[0],$titulo,$cnn);
+                //     if($resultado){ //se la logrado pagar la deuda
+                //         $dialogo->abrir($idpartida, Dialogo::AVISO_PAGO_JUGADOR, $resultado, $cnn);
+                //         $partida->escribirNota($idpartida, $resultado, $cnn);
+                //     }else{ //no se pudo pagar la deuda. Insolvente
+                //         $deuda = $jugador->calcularPago($titulo->poseedores[0],$titulo,$cnn);
+                //         $variable = new Variables();
+                //         // al ser un título de inversión se tiene sólo un poseedor por lo que lo que se entrega es una lista de 1.
+                //         $variable->guardar($idpartida, "acreedores", json_encode($titulo->poseedores), $cnn);
+                //         $variable->guardar($idpartida, "deuda",$deuda, $cnn);
+                //         $dialogo->abrir($idpartida, Dialogo::DECLARAR_BANCAROTA, "$jugador->id", $cnn);
+                //     }
+                // }else{
+                //     $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
+                //     $partida->finalizarTurno($idpartida,$cnn);
+                // }
+                break;
+            case Casillas.TIPO_TITULO_PROF:
+                // $titulo = new Titulo();
+                // $titulo->load($idpartida, $idcasilla, $cnn);                
+                // $tieneProfesion = $jugador->getCantidadTitulos($jugador->id, $idcasilla, $cnn)>0;
+                // if(!$tieneProfesion){
+                //     if($titulo->cantDisponible>0){//si hay para vender
+                //         $dialogo = new Dialogo();
+                //         $dialogo->abrir($idpartida, Dialogo::COMPRAR_TITULO, "$idcasilla|$jugador->id", $cnn);
+                //     }else {
+                //         $partida->escribirNota($idpartida, "Ya no hay títulos disponibles", $cnn);
+                //         $partida->finalizarTurno($idpartida,$cnn);
+                //     }
+                // }else{
+                //     $partida->escribirNota($idpartida, "@j$jugador->id ya es $casilla->nombre", $cnn);
+                //     $partida->finalizarTurno($idpartida,$cnn);
+                // }
+                break;
+            case Casillas.TIPO_COMODIN:                
+                // $dialogo = new Dialogo();
+                // $dialogo->abrir($idpartida, Dialogo::COMODIN, "$casilla->id", $cnn);
+                // $variable = new Variables();
+                // //vuelve a evaluar casilla luego de un CONTINUAR?
+                // if($variable->tomar($idpartida, "deuda", $cnn)){
+                //     //se eliminan las variables de deuda porque se volvera a evaluar el estado y de ser necesario se vuelven a crear.
+                //     $variable->tomar($idpartida, "acreedores", $cnn); 
+                //     $dialogo->cerrar($idpartida, $dialogo->iddialogo, $cnn);
+                //     $servidorML = new ServidorML();
+                //     //entrará a evaluar cierra de comodín                    
+                //     $servidorML->evaluarCierreComodin($casilla->id,$jugador->id,$idpartida,$cnn);
+                // }
+                break;
+            default: //Año nuevo, Festividades, Meses,
+                console.log("anio nuevo, festividades, meses");
+                const reglas = partida.reglas;
+                //validar si se debe cobrar utilidad
+                if(ruta.esCambioCarrilAnioNuevo()&&(casillas.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
+                   (partida.dadosValor!=0||(partida.dadosValor==0 && reglas.repetirAnioNuevo))){
+                    console.log("pendiente implementar cobrar utilidad");
+                    // $dialogo = new Dialogo();
+                    // $mensaje = "@j$jugador->id ha cobrado sus utilidades por @d$jugador->utilidadAnual";
+                    // $dialogo->abrir($idpartida, Dialogo::AVISO_COBRAR_UTILIDAD, $mensaje, $cnn);                    
+                }
+                //el cambio de carril permite continuar en el mismo estado de partida con el mismo jugador luego que la caminata termine.
+                this.permitirCambiarCarril(jugador.posicion);
+                if(partida.estadoInicial == "J"){
+                    partida.inicializarTurno();
+                    console.log("turno inicializado");
+                }else{
+                    //$partida->finalizarTurno($idpartida, $cnn);
+                    console.log("pendiente implementar finalizar turno");
+                }
+        }        
+    }
+    limpiar(){
+        const color = Tablero.COLOR_PREDET;
+        this.casilleros.forEach( c => {
+            c.elegible = false,
+            c.transparencia = 1.0,
+            c.color = color
+        });
+    }
     // public function getCasilla($id,$idpartida,Conexion $cnn){
     //     $res = $cnn->consultar("SELECT id,color,transparencia, elegible,posInternas FROM mls_tablero WHERE idpartida = $idpartida AND id = $id");
     //     $row = mysqli_fetch_row($res);
