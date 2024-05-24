@@ -1,3 +1,5 @@
+const THREE = require('three');
+
 class Casillas{
     static POS_INTERNAS = [[2,0,7],[-2,0,7],[2,0,-7],[-2,0,-7]];
     //rosados
@@ -75,9 +77,24 @@ class Casillas{
     static MINAS = 69;
     static ESTA_PERDIDO = 70;
     static RETROCEDA6_VERDE = 71;
-    static MILLONARIO = 72;      
+    static MILLONARIO = 72;
+    
+    //tipos
+    static TIPO_NINGUNO = 0;
+    static TIPO_COMODIN = 1;
+    static TIPO_TITULO_INVR = 2;
+    static TIPO_MES = 3;
+    static TIPO_TITULO_PROF = 4;
+
     constructor(){
-        this.items = require('../resources/casillas.json');        
+        this.items = require('../resources/casillas.json');
+        //convertir arreglo de coordenadas en vector3
+        this.items.forEach(item => {
+            item.coords = new THREE.Vector3(item.coords[0],item.coords[1],item.coords[2]);
+        });
+    }
+    esAnioNuevo(id){
+        return ([Casillas.ANIO_NUEVO_ROSADO,Casillas.ANIO_NUEVO_CELESTE,Casillas.ANIO_NUEVO_VERDE].includes(id));
     }
 }
 module.exports = Casillas;
