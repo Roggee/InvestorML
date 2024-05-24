@@ -42,6 +42,7 @@ class Partida {
       this.id=id;
       this.nombre=nombre;
       this.estado="I";
+      this.estadoInicial=""; //para validar el estado previo al cambio enuna evaluación de casilla
       this.maxJugadores=2;
       this.reglas={
         modoVictoria: "lf",
@@ -158,6 +159,15 @@ class Partida {
       this.jugadorActual.fichaEstado = Jugador.FICHA_ESTADO_SALUDO;
       this.jugadorActual.calcularTransformacionInicial();
       this.estado = Partida.INICIO_TURNO;
+    }
+    /**
+     * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
+     */
+    transmitir(){
+      this.jugadores.forEach( j => {
+          let rsp = {type:"game",content:{partida:this.minify(),msj:""}};
+          j.wsclient.send(JSON.stringify(rsp));
+      });
     }
 }
 
