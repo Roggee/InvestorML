@@ -236,10 +236,7 @@ wss.on('connection', function connection(ws, request) {
                     });
                     setTimeout(() => {
                         partida.iniciar();
-                        partida.jugadores.forEach( j => {
-                            let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
-                            j.wsclient.send(JSON.stringify(rsp));
-                        });
+                        partida.transmitir();
                     },2*1000);
                 }else if(listos.length==partida.maxJugadores-1 && !msg.content){
                     console.log("Cancelando inicio de partida...");
