@@ -87,11 +87,14 @@ class Casillas{
     static TIPO_TITULO_PROF = 4;
 
     constructor(){
+        //TODO: SE CARGA CADA VEZ QUE SE INICIALIZA pero mantiene los valores modificados de la primera vez del forEach
         this.items = require('../resources/casillas.json');
+        //console.log(`CASILLAS.ITEMS1: ${JSON.stringify(this.items)}`);
         //convertir arreglo de coordenadas en vector3
         this.items.forEach(item => {
-            item.coords = new THREE.Vector3(item.coords[0],item.coords[1],item.coords[2]);
+            item.coords = new THREE.Vector3(item.coords.x,item.coords.y,item.coords.z);
         });
+        //console.log(`CASILLAS.ITEMS2: ${JSON.stringify(this.items)}`);
     }
     esAnioNuevo(id){
         return ([Casillas.ANIO_NUEVO_ROSADO,Casillas.ANIO_NUEVO_CELESTE,Casillas.ANIO_NUEVO_VERDE].includes(id));

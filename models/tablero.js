@@ -15,8 +15,7 @@ class Tablero{
                 elegible: false,
                 posInternas: [false,false,false,false]
             });
-        }
-        
+        }        
     }
     /** 
      * Valida si el jugador se encuentra el Año nuevo o Festividades para permitirle la sessión de una ruta diferente.

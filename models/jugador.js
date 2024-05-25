@@ -66,11 +66,12 @@ class Jugador{
       //console.log(`jugador `+this.nombre+` posInterna [`+vpi+'] por '+this.posRelativa);
     }
     transformacion.multiply(p);
-    let csl = this.partida.tablero.casillerosDef.items[this.posicion];
-    //console.log(`jugador `+this.nombre+` Coords [`+csl.coords+'] por '+this.posicion);
+    const csl = this.partida.tablero.casillerosDef.items[this.posicion];
+    //console.log(`jugador `+this.nombre+` Coords: `+JSON.stringify(csl)+' por '+this.posicion);
     p.makeTranslation(csl.coords);
     transformacion.premultiply(p);
     this.fichaTransform = transformacion.toArray();
+    //console.log(`jugador `+this.nombre+` fichaTransform: ${this.fichaTransform}`);
   }
     /**
      * Envia estado PARCIAL del juego con los datos de un jugador a todos los jugadores de la partida actual.
