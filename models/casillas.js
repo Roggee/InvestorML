@@ -88,8 +88,9 @@ class Casillas{
 
     constructor(){
         //TODO: SE CARGA CADA VEZ QUE SE INICIALIZA pero mantiene los valores modificados de la primera vez del forEach
-        this.items = require('../resources/casillas.json');
-        //console.log(`CASILLAS.ITEMS1: ${JSON.stringify(this.items)}`);
+        const cas = require('../resources/casillas.json');
+        //console.log(`CASILLAS.ITEMS1: ${JSON.stringify(cas)}`);
+        this.items = cas;
         //convertir arreglo de coordenadas en vector3
         this.items.forEach(item => {
             item.coords = new THREE.Vector3(item.coords.x,item.coords.y,item.coords.z);
