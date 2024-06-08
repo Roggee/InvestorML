@@ -286,6 +286,19 @@ wss.on('connection', function connection(ws, request) {
                 //calcular pasos
                 avanzarCaminata(ja,ruta);
                 break;
+            case "rollDice":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                const valor = msg.content;
+                console.log(`el valor de los dados es ${valor}`);
+                partida.lanzarDados(valor);
+                partida.transmitir();
+                break;
         }
     });
     ws.on('close', () => {

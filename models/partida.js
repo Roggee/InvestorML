@@ -36,7 +36,7 @@ class Partida {
       { id: 5, nombre: "Lila", valor: "#8046DB" },
       { id: 6, nombre: "Naranja", valor: "#FF8000" },
     ];
-    //const tablaDados = array(array(0,2,3,1,2,0),array(0,2,4,1,3,0));
+    static TABLA_DADOS = [[0,2,3,1,2,0],[0,2,4,1,3,0]];
 
     constructor(id,nombre) {
       this.id=id;
@@ -55,9 +55,9 @@ class Partida {
         tributos: 5,
       }
       this.host=null;
-      this.dado1Indice=-1;
-      this.dado2Indice=-1;
-      this.dadosValor=-1;
+      this.d1Ix=-1;
+      this.d2Ix=-1;
+      this.dVal=-1;
       this.jugadorActual=null;
       this.btnAccion = Partida.BOTON_ACCION_LANZAR;
       this.ganador = 0; //si es diferente de cero entonces hay un ganador
@@ -159,6 +159,23 @@ class Partida {
       this.jugadorActual.fichaEstado = Jugador.FICHA_ESTADO_SALUDO;
       this.jugadorActual.calcularTransformacionInicial();
       this.estado = Partida.INICIO_TURNO;
+    }
+
+    lanzarDados(num){
+      this.tablero.limpiar();
+      let [indice1,indice2] = [-1,-2];
+      let estadoNew = Partida.FORZANDO;
+      let dadosValor = num;
+      if(num == undefined){
+          indice1 = Math.floor(Math.random()*5);
+          indice2 = Math.floor(Math.random()*5);
+          console.log(`Los valores calculados son: ${Partida.TABLA_DADOS[0][indice1]} y ${Partida.TABLA_DADOS[0][indice2]}`);
+          estadoNew = Partida.LANZANDO;
+      }
+      this.estado = estadoNew;
+      this.d1Ix = indice1;
+      this.d2Ix = indice2;
+      this.dVal = dadosValor;
     }
     /**
      * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
