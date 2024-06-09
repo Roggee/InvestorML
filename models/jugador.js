@@ -27,7 +27,7 @@ class Jugador{
     this.deuda = 0.0;
     this.orden = 0;
     this.posRelativa = -1; // la posición dentro de casilla.
-    this.fichaTransform = null;
+    this.fichaTransform = undefined;
   }
 
   minify(){
