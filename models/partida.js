@@ -169,7 +169,7 @@ class Partida {
       if(num == undefined){
           indice1 = Math.floor(Math.random()*5);
           indice2 = Math.floor(Math.random()*5);
-          console.log(`Los valores calculados son: ${Partida.TABLA_DADOS[0][indice1]} y ${Partida.TABLA_DADOS[0][indice2]}`);
+          console.log(`Los valores calculados son: ${Partida.TABLA_DADOS[0][indice1]} y ${Partida.TABLA_DADOS[1][indice2]}`);
           estadoNew = Partida.LANZANDO;
       }
       this.estado = estadoNew;
