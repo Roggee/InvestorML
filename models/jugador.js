@@ -28,6 +28,7 @@ class Jugador{
     this.orden = 0;
     this.posRelativa = -1; // la posición dentro de casilla.
     this.fichaTransform = undefined;
+    this.f1 = false; //para indicar si ha terminado la animación local de lanzamiento Dados
   }
 
   minify(){
