@@ -67,7 +67,7 @@ class Partida {
     }
     minify(){
       let strp = JSON.stringify(this,(key,value)=>{
-        if (key=="wsclient" || key=="token" || key=="casillerosDef") return undefined;
+        if (["wsclient","token","casillerosDef","f1"].includes(key)) return undefined;
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
         if (key=="jugadorActual") return (value?value.id:undefined);
