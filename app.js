@@ -299,6 +299,23 @@ wss.on('connection', function connection(ws, request) {
                 partida.lanzarDados(valor);
                 partida.transmitir();
                 break;
+            case "evaluateDice":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                partida = ja.partida;
+                ja.f1 = true;
+                console.log(`${ja.nombre} ha notificado`);
+                if(partida.jugadores.filter( j => j.f1).length == partida.jugadores.length){
+                    partida.jugadores.forEach(j => j.f1 = false);
+                    partida.estado = "C";
+                    const val1 = Partida.TABLA_DADOS[0][partida.d1Ix];
+                    const val2 = Partida.TABLA_DADOS[1][partida.d2Ix];
+                    console.log(`caminará ${val1+val2} espacios`);
+                    partida.transmitir();
+                }else{
+                    console.log("hay pendientes en notificar");
+                }
+                break;
         }
     });
     ws.on('close', () => {
