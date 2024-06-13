@@ -7,9 +7,7 @@ const url = require("url");
 const jwt = require('jsonwebtoken');
 const JugadorFactory = require("./models/jugadorFactory.js");
 const PartidaFactory = require("./models/partidaFactory.js");
-const Ruta = require('./models/ruta.js');
-const Jugador = require('./models/jugador.js');
-const THREE = require('three');
+const {PE} = require("./models/valores");
 
 //token secret
 let secret = '1nv3$t0r';
@@ -272,7 +270,7 @@ wss.on('connection', function connection(ws, request) {
                     }
                 });
                 break;
-            case "seleccionarCasilla":
+            case "selectSite":
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
                 if(ja.id != ja.partida.jugadorActual.id) {
@@ -283,8 +281,8 @@ wss.on('connection', function connection(ws, request) {
                 //calcular ruta y estado ficha
                 const ruta = evaluarSeleccionCasilla(ja,partida,msg.content);
                 partida.transmitir();
-                //calcular pasos
-                avanzarCaminata(ja,ruta);
+                //calcular pasos y transmitir
+                ja.avanzarCaminata(ruta);
                 break;
             case "rollDice":
                 ja = validarJugador(msg,ws);
@@ -307,14 +305,22 @@ wss.on('connection', function connection(ws, request) {
                 console.log(`${ja.nombre} ha notificado`);
                 if(partida.jugadores.filter( j => j.f1).length == partida.jugadores.length){
                     partida.jugadores.forEach(j => j.f1 = false);
-                    partida.estado = "C";
-                    const val1 = Partida.TABLA_DADOS[0][partida.d1Ix];
-                    const val2 = Partida.TABLA_DADOS[1][partida.d2Ix];
-                    console.log(`caminará ${val1+val2} espacios`);
-                    partida.transmitir();
+                    partida.validarResultadoDados();
                 }else{
                     console.log("hay pendientes en notificar");
                 }
+                break;
+            case "finishTurn":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                const ok = ja.terminarTurno();
+                if(ok) partida.estado = PE.INICIO_TURNO;
+                partida.transmitir();
                 break;
         }
     });
@@ -329,122 +335,26 @@ server.listen(port,() => {
 
 function evaluarSeleccionCasilla(jugador,partida,idcasilla){
     switch(partida.estado){
-        case Partida.INICIO_TURNO:
-        case Partida.FINALIZANDO_TURNO:
-            return evaluarCambioCamino(jugador, idcasilla);
-        case Partida.DECIDIENDO_CAMINO:
+        case PE.INICIO_TURNO:
+        case PE.FINALIZANDO_TURNO:
+            return jugador.evaluarCambioCamino(idcasilla);
+            //return evaluarCambioCamino(jugador, idcasilla);
+        case PE.DECIDIENDO_CAMINO:
             //$this->evaluarJugadorDecideCamino($idjugador, $idpartida, $idcasilla, $cnn);
             break;
-        case Partida.COMPRANDO_OF_OP:
+        case PE.COMPRANDO_OF_OP:
             //$this->evaluarCompraOFOP($idjugador,$idpartida,$idcasilla,$cnn);
             break;
-        case Partida.FUSIONANDO:
+        case PE.FUSIONANDO:
             //$this->evaluarFusionaTitulo($idpartida,$idjugador,$idcasilla,$cnn);
             break;
-        case Partida.FRACASANDO:
+        case PE.FRACASANDO:
             //$this->evaluarDevuelveTitulo($idpartida,$idjugador,$idcasilla,$cnn);
             break;
-        case Partida.DECIDIENDO_SUERTE:
+        case PE.DECIDIENDO_SUERTE:
             //$this->evaluarDecidirSuerte($idpartida,$idjugador,$idcasilla,$cnn);
             break;
     }    
-}
-function evaluarCambioCamino(jugador, idcasilla) {
-    const casDef = jugador.partida.tablero.casillerosDef.items;
-    const partida = jugador.partida;
-    const rutaEsp = casDef[jugador.posicion].rutaEspecial;
-    let ruta;
-    if(rutaEsp && rutaEsp.ruta[rutaEsp.ruta.length-1]==idcasilla){
-        ruta = new Ruta(rutaEsp.ruta,0);
-    }else{
-        ruta = new Ruta([jugador.posicion,idcasilla],0);
-    }
-    console.log(JSON.stringify(ruta));
-    // TODO: revisar necesidad de clase Variables
-    // $vars = new Variables();
-    // $vars->guardar($idpartida,"ruta",json_encode($ruta), $cnn);
-    partida.estadoInicial = partida.estado;
-    jugador.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
-    partida.tablero.limpiar();
-    partida.estado = Partida.CAMINANDO;
-    //const trp = partida.tablero.casilleros[idcasilla].transparencia;
-    //partida.tablero.casilleros[idcasilla].transparencia = trp<1? 1: 0.5;
-    return ruta;
-}
-
-function avanzarCaminata(jugador,ruta){
-    const numSegmentos = 25;
-    const casDef = jugador.partida.tablero.casillerosDef.items;
-    const Vangle = new THREE.Vector3();
-    const P = new THREE.Vector3();
-    const temp = new THREE.Matrix4();
-    const transformacion = new THREE.Matrix4();
-    let [ini,fin,iSegmento,iCasillaActual] = [0,0,0,0];
-    //console.log(`avanzarCaminata: ${JSON.stringify(ruta)}`);
-    jugador.fichaEstado = Jugador.FICHA_ESTADO_CAMINAR;
-    const intervalID = setInterval(()=> {
-        if(iCasillaActual<ruta.getLongitud()){
-            transformacion.identity();
-            iSegmento++;
-            if(iSegmento<numSegmentos){
-                if(iSegmento==1){
-                    ini = ruta.get(iCasillaActual);
-                    fin = ruta.get(iCasillaActual+1);
-                    Vangle.subVectors(casDef[fin].coords,casDef[ini].coords);
-                }
-                P.lerpVectors(casDef[ini].coords,casDef[fin].coords,iSegmento/numSegmentos);
-            }else{
-                iSegmento = 0;                            
-                iCasillaActual++;
-                const v = casDef[ruta.get(iCasillaActual)].coords;
-                P.copy(v);
-            }
-            const giro = Math.atan2(-Vangle.z,Vangle.x);
-            temp.makeRotationY(giro);
-            transformacion.multiply(temp);
-            temp.makeTranslation(P);
-            transformacion.premultiply(temp);
-            const idCasillaActual = ruta.get(iCasillaActual);
-            jugador.posicion = idCasillaActual;
-            jugador.fichaTransform = transformacion.toArray();
-            jugador.transmitir();
-            //console.log("caminando...");
-        }else{
-            clearInterval(intervalID);
-            terminarCaminata(jugador,ruta,false);
-        }
-    },100);
-}
-
-function terminarCaminata(jugador,ruta,forzado){
-    //iSegmento=0;
-    //iCasillaActual = 0;
-    //setEnable(false);
-    //ServicioPartida.SP().terminarCaminata(forzado);
-    jugador.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
-    jugador.transmitir();
-    //se espera antes de proceder con la evaluación de la casilla para apreciar donde cayó
-    setTimeout(() => {
-        evaluarDestino(jugador, ruta);
-        jugador.partida.transmitir();
-    }, 500);
-}
-
-function evaluarDestino(jugador, ruta) {
-    jugador.partida.estado = Partida.EVALUANDO_DESTINO;
-    
-    if(ruta.getLongitud()!=7){ //NO es feriado
-        evaluarFinCaminoLaboral(jugador,ruta);
-    }else{ //es un feriado
-        // $dialogo = new Dialogo();
-        // $dialogo->abrir($idpartida, Dialogo::AVISO_FERIADO, "Es feriado. Puedes descansar...zzZ", $cnn);
-        console.log("pendiente implementar Feriado");
-    }
-}
-function evaluarFinCaminoLaboral(jugador,ruta) {
-    //$this->cobrarSueldo($idpartida,$jugador,$ruta->numMeses,$cnn); //cobrar sueldo por los meses pasados
-    //if($partida->evaluarGanador($idpartida, $cnn)) return;
-    jugador.partida.tablero.procesarCasilla(jugador,ruta); //procesa CASILLA ACTUAL
 }
 
 function validarJugador(msg,ws){
