@@ -1,4 +1,5 @@
 const Casillas = require("./casillas");
+const {PE,CA,CA_TIPO} = require("./valores");
 
 class Tablero{
 
@@ -23,25 +24,25 @@ class Tablero{
      */
     permitirCambiarCarril(jugador_posicion){
         if(this.esAnioNuevo(jugador_posicion)){
-            let ids = [Casillas.ANIO_NUEVO_ROSADO,Casillas.ANIO_NUEVO_CELESTE,Casillas.ANIO_NUEVO_VERDE];
+            let ids = [CA.ANIO_NUEVO_ROSADO,CA.ANIO_NUEVO_CELESTE,CA.ANIO_NUEVO_VERDE];
             this.setElegible(ids, true);
             this.setElegible([jugador_posicion], false);
         }else if(this.esFestividades(jugador_posicion)){
-            let ids = [Casillas.FESTIVIDADES_ROSADO,Casillas.FESTIVIDADES_CELESTE,Casillas.FESTIVIDADES_VERDE];
+            let ids = [CA.FESTIVIDADES_ROSADO,CA.FESTIVIDADES_CELESTE,CA.FESTIVIDADES_VERDE];
             this.setElegible(ids, true);
             this.setElegible([jugador_posicion], false);
         } else{
-            let ids = [Casillas.ANIO_NUEVO_ROSADO,Casillas.ANIO_NUEVO_CELESTE,Casillas.ANIO_NUEVO_VERDE,Casillas.FESTIVIDADES_ROSADO,Casillas.FESTIVIDADES_CELESTE,Casillas.FESTIVIDADES_VERDE];
+            let ids = [CA.ANIO_NUEVO_ROSADO,CA.ANIO_NUEVO_CELESTE,CA.ANIO_NUEVO_VERDE,CA.FESTIVIDADES_ROSADO,CA.FESTIVIDADES_CELESTE,CA.FESTIVIDADES_VERDE];
             this.setElegible(ids, false);
         }
     }
 
     esAnioNuevo(posicion){
-        return [Casillas.ANIO_NUEVO_ROSADO,Casillas.ANIO_NUEVO_CELESTE,Casillas.ANIO_NUEVO_VERDE].includes(posicion);
+        return [CA.ANIO_NUEVO_ROSADO,CA.ANIO_NUEVO_CELESTE,CA.ANIO_NUEVO_VERDE].includes(posicion);
     }
 
     esFestividades(posicion){
-        return [Casillas.FESTIVIDADES_ROSADO,Casillas.FESTIVIDADES_CELESTE,Casillas.FESTIVIDADES_VERDE].includes(posicion);
+        return [CA.FESTIVIDADES_ROSADO,CA.FESTIVIDADES_CELESTE,CA.FESTIVIDADES_VERDE].includes(posicion);
     }
     /**
      * Establece si una casilla debe ser elegible o no.
@@ -51,22 +52,13 @@ class Tablero{
     setElegible(casillaIDs,elegible){
         casillaIDs.forEach( c => this.casilleros[c].elegible = elegible);
     }
-    // public function getByPartida($idpartida,Conexion $cnn){
-    //     $res = $cnn->consultar("SELECT id,color,transparencia, elegible,posInternas FROM mls_tablero WHERE idpartida = $idpartida");
-    //     this.casilleros = array();
-    //     for($i=0;$i<mysqli_num_rows($res);$i++){            
-    //         $row = mysqli_fetch_row($res);
-    //         array_push(this.casilleros,array((int)$row[0],$row[1],(float)$row[2],(boolean)$row[3],  json_decode($row[4])));
-    //     }
-    //     return $this;
-    // }
-    procesarCasilla(jugador,ruta){        
-        const partida = jugador.partida;
+
+    procesarCasilla(jugador,ruta){
         const idcasilla = jugador.posicion;
         const casilla = jugador.partida.tablero.casillerosDef.items[idcasilla];
         const casillas = jugador.partida.tablero.casillerosDef;
         switch(casilla.tipo){
-            case Casillas.TIPO_TITULO_INVR:
+            case CA_TIPO.TITULO_INVR:
                 // $titulo = new Titulo();
                 // $titulo->load($idpartida, $idcasilla, $cnn);
                 // //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
@@ -90,10 +82,10 @@ class Tablero{
                 //     }
                 // }else{
                 //     $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
-                //     $partida->finalizarTurno($idpartida,$cnn);
+                this.partida.finalizarTurno();
                 // }
                 break;
-            case Casillas.TIPO_TITULO_PROF:
+            case CA_TIPO.TITULO_PROF:
                 // $titulo = new Titulo();
                 // $titulo->load($idpartida, $idcasilla, $cnn);                
                 // $tieneProfesion = $jugador->getCantidadTitulos($jugador->id, $idcasilla, $cnn)>0;
@@ -107,10 +99,11 @@ class Tablero{
                 //     }
                 // }else{
                 //     $partida->escribirNota($idpartida, "@j$jugador->id ya es $casilla->nombre", $cnn);
-                //     $partida->finalizarTurno($idpartida,$cnn);
+                this.partida.finalizarTurno();
                 // }
                 break;
-            case Casillas.TIPO_COMODIN:                
+            case CA_TIPO.COMODIN:
+                this.partida.finalizarTurno();
                 // $dialogo = new Dialogo();
                 // $dialogo->abrir($idpartida, Dialogo::COMODIN, "$casilla->id", $cnn);
                 // $variable = new Variables();
@@ -126,23 +119,23 @@ class Tablero{
                 break;
             default: //Año nuevo, Festividades, Meses,
                 console.log("anio nuevo, festividades, meses");
-                const reglas = partida.reglas;
+                const reglas = this.partida.reglas;
                 //validar si se debe cobrar utilidad
                 if(ruta.esCambioCarrilAnioNuevo()&&(casillas.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
-                   (partida.dadosValor!=0||(partida.dadosValor==0 && reglas.repetirAnioNuevo))){
+                   (this.partida.dadosValor!=0||(this.partida.dadosValor==0 && reglas.repetirAnioNuevo))){
                     console.log("pendiente implementar cobrar utilidad");
+                    this.partida.finalizarTurno();
                     // $dialogo = new Dialogo();
                     // $mensaje = "@j$jugador->id ha cobrado sus utilidades por @d$jugador->utilidadAnual";
                     // $dialogo->abrir($idpartida, Dialogo::AVISO_COBRAR_UTILIDAD, $mensaje, $cnn);                    
                 }
                 //el cambio de carril permite continuar en el mismo estado de partida con el mismo jugador luego que la caminata termine.
                 this.permitirCambiarCarril(jugador.posicion);
-                if(partida.estadoInicial == "J"){
-                    partida.inicializarTurno();
+                if(this.partida.estadoInicial == "J"){
+                    this.partida.inicializarTurno();
                     console.log("turno inicializado");
                 }else{
-                    //$partida->finalizarTurno($idpartida, $cnn);
-                    console.log("pendiente implementar finalizar turno");
+                    this.partida.finalizarTurno();
                 }
         }        
     }
@@ -168,27 +161,22 @@ class Tablero{
         let jEnDescanso = this.partida.jugadores.filter(j => j.posRelativa != -1 && !j.bancaRota);
         jEnDescanso.forEach(j => {
            this.casilleros[j.posicion].posInternas[j.posRelativa] = true;
-        });              
+        });
     }
         
-    // public function getPosicionLibre($idpartida,$id,$cnn){
-    //     $res = $cnn->consultar("SELECT posInternas FROM mls_tablero WHERE idpartida = $idpartida AND id = $id");
-    //     $row = mysqli_fetch_row($res);
-    //     $posInternas = json_decode($row[0]);
-    //     for($i=0;$i<count($posInternas);$i++){
-    //         if(!$posInternas[$i]){
-    //             return $i;
-    //         }
-    //     }
-    //     return -1;
-    // }
-    
-    // public function jsonSerialize() {
-    //     return 
-    //     [
-    //         'casilleros' => this.casilleros
-    //     ];
-    // }
+    getPosicionLibre(idCasilla){
+        const posInternas = this.casilleros[idCasilla].posInternas;
+        let iPosInterna = -1;
+        posInternas.every((p,index) => {
+            if(!p) {
+                iPosInterna = index;
+                return false;
+            }
+            return true;
+        })
+        return iPosInterna;
+    }
+
 
     // public function mostrarCaminos($idpartida, Rutas $rutas, Conexion $cnn) {
     //     $finP = $rutas->getPrincipal()->getFin();
