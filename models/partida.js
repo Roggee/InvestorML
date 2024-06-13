@@ -1,27 +1,12 @@
 const Jugador = require("./jugador");
 const Tablero = require("./tablero");
+const Rutas = require("./rutas");
+const {PE,TABLA_DADOS} = require("./valores");
 
 class Partida {
     static PQT_COMPLETO             =   1;
     static PQT_CAMINANDO            =   2;
     static PQT_VTNTITULOS           =   3;
-    
-    static PREPARACION              = "I";
-    static INICIANDO                = "N";
-    static INICIO_TURNO             = "J";
-    static FORZANDO                 = "F";
-    static LANZANDO                 = "R";
-    static CAMINANDO                = "C";
-    static DECIDIENDO_CAMINO        = "D";
-    static COMPRANDO_OF_OP          = "S";
-    static FINALIZANDO_TURNO        = "Z";
-    static EVALUANDO_DESTINO        = "V";
-    static ESPERAR_TURNO            = "E";
-    static GANADOR                  = "G";
-    static FUSIONANDO               = "U";
-    static FRACASANDO               = "A";
-    static DECIDIENDO_SUERTE        = "T";
-    static FIN_CAMINATA_FORZADA     = "M";
     
     static BOTON_ACCION_LANZAR      =   0;
     static BOTON_ACCION_CONTINUAR   =   1;
@@ -36,7 +21,6 @@ class Partida {
       { id: 5, nombre: "Lila", valor: "#8046DB" },
       { id: 6, nombre: "Naranja", valor: "#FF8000" },
     ];
-    static TABLA_DADOS = [[0,2,3,1,2,0],[0,2,4,1,3,0]];
 
     constructor(id,nombre) {
       this.id=id;
@@ -67,7 +51,7 @@ class Partida {
     }
     minify(){
       let strp = JSON.stringify(this,(key,value)=>{
-        if (["wsclient","token","casillerosDef","f1"].includes(key)) return undefined;
+        if (["wsclient","token","casillerosDef","f1","posInternas"].includes(key)) return undefined;
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
         if (key=="jugadorActual") return (value?value.id:undefined);
@@ -118,7 +102,7 @@ class Partida {
       //se asigna de forma aleatoria el orden de los jugadores.
       this.sortearOrdenYPosRelJugadores();
       //estado iniciando
-      this.estado = Partida.INICIANDO;
+      this.estado = PE.INICIANDO;
     }
     sortearOrdenYPosRelJugadores(){
       //definir arreglo de consecutivos
@@ -142,41 +126,97 @@ class Partida {
       this.tablero = new Tablero(this);
       this.tablero.updatePosInternasCasilla();
       this.tablero.permitirCambiarCarril(this.jugadorActual.posicion);
-      this.calcularCoordenadasIniciales();
+      this.setPosicionesIniciales();
       this.inicializarTurno();
     }
     /**
      * calcula las coordenadas iniciales de todos los jugadores de la partida indicada
      */  
-    calcularCoordenadasIniciales(){
-      this.jugadores.forEach(j => j.calcularTransformacionInicial());
+    setPosicionesIniciales(){
+      this.jugadores.forEach(j => j.setPosicionInicial());
     }
     /**
      * Cambia el estado de la partida a INICIO_TURNO y el boton de acción a Lanzar
      */
     inicializarTurno(){
       this.btnAccion = Partida.BOTON_ACCION_LANZAR;
-      this.jugadorActual.fichaEstado = Jugador.FICHA_ESTADO_SALUDO;
-      this.jugadorActual.calcularTransformacionInicial();
-      this.estado = Partida.INICIO_TURNO;
+      //this.jugadorActual.fichaEstado = Jugador.FICHA_ESTADO_SALUDO;
+      this.jugadorActual.setPosicionInicial();
+      this.estado = PE.INICIO_TURNO;
     }
 
     lanzarDados(num){
       this.tablero.limpiar();
       let [indice1,indice2] = [-1,-2];
-      let estadoNew = Partida.FORZANDO;
+      let estadoNew = PE.FORZANDO;
       let dadosValor = num;
       if(num == undefined){
           indice1 = Math.floor(Math.random()*5);
           indice2 = Math.floor(Math.random()*5);
-          console.log(`Los valores calculados son: ${Partida.TABLA_DADOS[0][indice1]} y ${Partida.TABLA_DADOS[1][indice2]}`);
-          estadoNew = Partida.LANZANDO;
+          console.log(`Los valores calculados son: ${TABLA_DADOS[0][indice1]} y ${TABLA_DADOS[1][indice2]}`);
+          estadoNew = PE.LANZANDO;
       }
       this.estado = estadoNew;
       this.d1Ix = indice1;
       this.d2Ix = indice2;
       this.dVal = dadosValor;
     }
+    
+    validarResultadoDados() {
+      const rutas = new Rutas();
+      rutas.calcularRutas(this);
+      const ruta1 = rutas.principal;
+      //el desplazamiento es cero
+      if(ruta1.getLongitud()==0){
+        this.jugadorActual.terminarCaminata(ruta1);
+        //$jugador->evaluarDestino($idpartida, $ruta1, $cnn);
+        return;
+      }
+      //si solo hay un camino 
+      if(rutas.getCantidadRutas()==1){
+        this.estado = "C";
+        this.transmitir();
+        this.jugadorActual.avanzarCaminata(ruta1);
+      }else{
+        console.log("pendiente implementar selección de camino");
+        this.estado = "C";
+        this.transmitir();
+        this.jugadorActual.avanzarCaminata(ruta1);
+      //     $tablero->mostrarCaminos($idpartida,$rutas,$cnn);
+      //     $variable = new Variables();
+      //     $variable->guardar($idpartida, "rutas", json_encode($rutas), $cnn);
+      //     $this->cambiarEstado($idpartida, Partida::DECIDIENDO_CAMINO, $cnn);
+      }
+    }
+    /**
+     * Cambia el estado de la partida a FINALIZANDO_TURNO y el boton de acción a Terminar
+     */
+    finalizarTurno(){
+      const nuevo_estado = PE.FINALIZANDO_TURNO;      
+      if(nuevo_estado == this.estado){
+        console.log(`La partida ${this.id} ya se encuentra en estado ${nuevo_estado}`);
+        return;
+      }
+      //this.btnAccion = PE.BOTON_ACCION_TERMINAR;
+      this.estado = nuevo_estado;
+      console.log(`La partida ${this.id} a cambiado a ${nuevo_estado}`);
+    }
+    /**
+     * Devuelve el jugador siguiente según el orden. Este no considera a los juagdores en banca rota.
+     */
+    getJugadorSiguiente(jAnterior_orden){
+      let [min,max,sig] = [this.maxJugadores,-1,this.maxJugadores];
+      this.jugadores.forEach(j => { 
+        if(j.orden < min && !j.bancaRota) min = j.orden;
+        if(j.orden > max && !j.bancaRota) max = j.orden;
+        if(j.orden > jAnterior_orden && j.orden < sig && !j.bancaRota){
+          sig = j.orden;
+        }
+      });
+      if(sig>max) sig = min;
+      const jSig = this.jugadores.find( j => {return j.orden == sig});
+      return jSig;
+    }    
     /**
      * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
      */
