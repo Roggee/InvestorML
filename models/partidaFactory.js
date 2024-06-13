@@ -1,4 +1,5 @@
 const Partida = require('./partida');
+const {PE} = require('./valores');
 
 class PartidaFactory{
     constructor() {
@@ -23,7 +24,7 @@ class PartidaFactory{
     }
     listMini(){
         let minPartidas = [];
-        let disponibles = this.partidas.filter(p => p.estado==Partida.PREPARACION);
+        let disponibles = this.partidas.filter(p => p.estado==PE.PREPARACION);
         disponibles.forEach((p)=>{ minPartidas.push({id:p.id,nombre:p.nombre,pop:(p.numJugadores+"/"+p.maxJugadores)}) });
         return minPartidas;
     }
