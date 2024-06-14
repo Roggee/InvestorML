@@ -3,7 +3,6 @@ const PE = {
     PREPARACION           : "I",
     INICIANDO             : "N",
     INICIO_TURNO          : "J",
-    FORZANDO              : "F",
     LANZANDO              : "R",
     CAMINANDO             : "C",
     DECIDIENDO_CAMINO     : "D",
