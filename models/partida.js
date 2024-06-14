@@ -39,9 +39,9 @@ class Partida {
         tributos: 5,
       }
       this.host=null;
-      this.d1Ix=-1;
-      this.d2Ix=-1;
-      this.dVal=-1;
+      this.d1Ix=undefined;
+      this.d2Ix=undefined;
+      this.dVal=undefined;
       this.jugadorActual=null;
       this.btnAccion = Partida.BOTON_ACCION_LANZAR;
       this.ganador = 0; //si es diferente de cero entonces hay un ganador
@@ -143,6 +143,9 @@ class Partida {
       //this.jugadorActual.fichaEstado = Jugador.FICHA_ESTADO_SALUDO;
       this.jugadorActual.setPosicionInicial();
       this.estado = PE.INICIO_TURNO;
+      this.d1Ix = undefined;
+      this.d2Ix = undefined;
+      this.dVal = undefined;
     }
 
     lanzarDados(num){

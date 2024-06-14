@@ -195,9 +195,9 @@ class Jugador{
     }else{
       this.partida.tablero.limpiar();
       this.partida.tablero.permitirCambiarCarril(jActual.posicion);
-      this.partida.d1Ix=-1;
-      this.partida.d2Ix=-1;
-      this.partida.dVal=-1;
+      this.partida.d1Ix=undefined;
+      this.partida.d2Ix=undefined;
+      this.partida.dVal=undefined;
       //this.partida.btnAccion=Partida.BOTON_ACCION_LANZAR;
       return true;
     }
