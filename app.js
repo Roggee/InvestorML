@@ -293,9 +293,14 @@ wss.on('connection', function connection(ws, request) {
                 }
                 partida = ja.partida;
                 const valor = msg.content;
-                console.log(`el valor de los dados es ${valor}`);
-                partida.lanzarDados(valor);
-                partida.transmitir();
+                if(valor == undefined){
+                    partida.lanzarDados();
+                    partida.transmitir();
+                }else{
+                    console.log(`el valor de los dados es ${valor}`);
+                    partida.dVal = valor;
+                    partida.validarResultadoDados();
+                }
                 break;
             case "evaluateDice":
                 ja = validarJugador(msg,ws);

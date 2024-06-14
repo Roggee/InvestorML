@@ -148,21 +148,15 @@ class Partida {
       this.dVal = undefined;
     }
 
-    lanzarDados(num){
+    lanzarDados(){
       this.tablero.limpiar();
-      let [indice1,indice2] = [-1,-2];
-      let estadoNew = PE.FORZANDO;
-      let dadosValor = num;
-      if(num == undefined){
-          indice1 = Math.floor(Math.random()*5);
-          indice2 = Math.floor(Math.random()*5);
-          console.log(`Los valores calculados son: ${TABLA_DADOS[0][indice1]} y ${TABLA_DADOS[1][indice2]}`);
-          estadoNew = PE.LANZANDO;
-      }
-      this.estado = estadoNew;
+      const indice1 = Math.floor(Math.random()*5);
+      const indice2 = Math.floor(Math.random()*5);
+      console.log(`Los valores calculados son: ${TABLA_DADOS[0][indice1]} y ${TABLA_DADOS[1][indice2]}`);
+      this.estado = PE.LANZANDO;
       this.d1Ix = indice1;
       this.d2Ix = indice2;
-      this.dVal = dadosValor;
+      this.dVal = TABLA_DADOS[0][indice1] + TABLA_DADOS[1][indice2];
     }
     
     validarResultadoDados() {
