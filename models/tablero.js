@@ -122,7 +122,7 @@ class Tablero{
                 const reglas = this.partida.reglas;
                 //validar si se debe cobrar utilidad
                 if(ruta.esCambioCarrilAnioNuevo()&&(casillas.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
-                   (this.partida.dadosValor!=0||(this.partida.dadosValor==0 && reglas.repetirAnioNuevo))){
+                   (this.partida.dVal!=0||(this.partida.dVal==0 && reglas.repetirAnioNuevo))){
                     console.log("pendiente implementar cobrar utilidad");
                     this.partida.finalizarTurno();
                     // $dialogo = new Dialogo();
@@ -131,7 +131,7 @@ class Tablero{
                 }
                 //el cambio de carril permite continuar en el mismo estado de partida con el mismo jugador luego que la caminata termine.
                 this.permitirCambiarCarril(jugador.posicion);
-                if(this.partida.estadoInicial == "J"){
+                if(this.partida.estadoInicial == PE.INICIO_TURNO){
                     this.partida.inicializarTurno();
                     console.log("turno inicializado");
                 }else{
