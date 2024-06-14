@@ -14,11 +14,6 @@ class Rutas {
 
     calcularRutas(partida){
         let longitud = partida.dVal;
-        if(!partida.dVal){
-            const val1 = TABLA_DADOS[0][partida.d1Ix];
-            const val2 = TABLA_DADOS[1][partida.d2Ix];
-            longitud = val1+val2;
-        }
         
         const posIni = partida.jugadorActual.posicion;
         const pararAnioNuevo = partida.reglas.pararAnioNuevo;
