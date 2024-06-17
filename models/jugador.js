@@ -70,15 +70,15 @@ class Jugador{
     const casDef = this.partida.tablero.casillerosDef.items;
     const rutaEsp = casDef[this.posicion].rutaEspecial;
     let ruta;
+    //si la casilla seleccionada está 2 espacios
     if(rutaEsp && rutaEsp.ruta[rutaEsp.ruta.length-1]==idcasilla){
         ruta = new Ruta(rutaEsp.ruta,0);
     }else{
         ruta = new Ruta([this.posicion,idcasilla],0);
     }
     console.log(JSON.stringify(ruta));
-    // TODO: revisar necesidad de clase Variables
-    // $vars = new Variables();
-    // $vars->guardar($idpartida,"ruta",json_encode($ruta), $cnn);
+
+    //se almacena estado inicial antes de cambiar carril para cuando este seael finalizar el turno.
     this.partida.estadoInicial = this.partida.estado;
     this.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
     this.partida.tablero.limpiar();
@@ -87,7 +87,7 @@ class Jugador{
     return ruta;
   }
   avanzarCaminata(ruta){
-    const numSegmentos = 20;//25;
+    const numSegmentos = 10; //20
     const casDef = this.partida.tablero.casillerosDef.items;
     const Vangle = new THREE.Vector3();
     const P = new THREE.Vector3();
@@ -127,7 +127,7 @@ class Jugador{
             clearInterval(intervalID);
             this.terminarCaminata(ruta,false);
         }
-    },100);
+    },150);
   }
   /**
    * Actualiza el estado de la ficha y limpia el tablero
@@ -141,21 +141,18 @@ class Jugador{
    * @param forzado flag para indicar si la animación de caminanta fue terminada anticipadamente
    */
   terminarCaminata(ruta,forzado){
-    //iSegmento=0;
-    //iCasillaActual = 0;
     //setEnable(false);
     //ServicioPartida.SP().terminarCaminata(forzado);
     this.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
-    this.transmitir();
+    this.partida.estado = PE.EVALUANDO_DESTINO;
+    this.partida.transmitir();
     //se espera antes de proceder con la evaluación de la casilla para apreciar donde cayó
     setTimeout(() => {
         this.evaluarDestino(ruta);
         this.partida.transmitir();
     }, 500);
   }
-  evaluarDestino(ruta) {
-    this.partida.estado = PE.EVALUANDO_DESTINO;
-    
+  evaluarDestino(ruta) {    
     if(ruta.getLongitud()!=7){ //NO es feriado
         this.evaluarFinCaminoLaboral(ruta);
     }else{ //es un feriado
