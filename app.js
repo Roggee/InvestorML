@@ -293,14 +293,9 @@ wss.on('connection', function connection(ws, request) {
                 }
                 partida = ja.partida;
                 const valor = msg.content;
-                if(valor == undefined){
-                    partida.lanzarDados();
-                    partida.transmitir();
-                }else{
-                    console.log(`el valor de los dados es ${valor}`);
-                    partida.dVal = valor;
-                    partida.validarResultadoDados();
-                }
+                console.log(`el valor de los dados es ${valor}`);
+                partida.lanzarDados(valor);
+                partida.transmitir();
                 break;
             case "evaluateDice":
                 ja = validarJugador(msg,ws);
@@ -343,7 +338,6 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
         case PE.INICIO_TURNO:
         case PE.FINALIZANDO_TURNO:
             return jugador.evaluarCambioCamino(idcasilla);
-            //return evaluarCambioCamino(jugador, idcasilla);
         case PE.DECIDIENDO_CAMINO:
             //$this->evaluarJugadorDecideCamino($idjugador, $idpartida, $idcasilla, $cnn);
             break;
