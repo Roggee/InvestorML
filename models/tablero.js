@@ -131,10 +131,12 @@ class Tablero{
                 }
                 //el cambio de carril permite continuar en el mismo estado de partida con el mismo jugador luego que la caminata termine.
                 this.permitirCambiarCarril(jugador.posicion);
-                if(this.partida.estadoInicial == PE.INICIO_TURNO){
+                if(ruta.esCambioCarril() && this.partida.estadoInicial == PE.INICIO_TURNO){
+                    this.partida.estadoInicial = "";
                     this.partida.inicializarTurno();
                     console.log("turno inicializado");
                 }else{
+                    //cambiar nombre a PermitirFinalizarTurno
                     this.partida.finalizarTurno();
                 }
         }        
