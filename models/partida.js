@@ -26,7 +26,7 @@ class Partida {
       this.id=id;
       this.nombre=nombre;
       this.estado="I";
-      this.estadoInicial=""; //para validar el estado previo al cambio enuna evaluación de casilla
+      this.estadoInicial=""; //para validar el estado previo al cambio de carrill en una evaluación de casilla
       this.maxJugadores=2;
       this.reglas={
         modoVictoria: "lf",
@@ -148,10 +148,24 @@ class Partida {
       this.dVal = undefined;
     }
 
-    lanzarDados(){
+    lanzarDados(valor){
       this.tablero.limpiar();
-      const indice1 = Math.floor(Math.random()*5);
-      const indice2 = Math.floor(Math.random()*5);
+      let indice1 = Math.floor(Math.random()*5);
+      let indice2 = Math.floor(Math.random()*5);
+      if(valor != undefined){
+        let m = -1;
+        TABLA_DADOS[0].forEach((val,i) => {
+          if(val <= valor && val>m) {
+            indice1 = i;
+            m = TABLA_DADOS[0][indice1];
+          }
+        });
+        TABLA_DADOS[1].forEach((val,i) => {
+          if(val+TABLA_DADOS[0][indice1] == valor) {
+            indice2 = i;
+          }
+        });
+      }
       console.log(`Los valores calculados son: ${TABLA_DADOS[0][indice1]} y ${TABLA_DADOS[1][indice2]}`);
       this.estado = PE.LANZANDO;
       this.d1Ix = indice1;
@@ -166,19 +180,22 @@ class Partida {
       //el desplazamiento es cero
       if(ruta1.getLongitud()==0){
         this.jugadorActual.terminarCaminata(ruta1);
-        //$jugador->evaluarDestino($idpartida, $ruta1, $cnn);
         return;
       }
       //si solo hay un camino 
       if(rutas.getCantidadRutas()==1){
         this.estado = "C";
         this.transmitir();
-        this.jugadorActual.avanzarCaminata(ruta1);
+        setTimeout(() => {          
+          this.jugadorActual.avanzarCaminata(ruta1);
+        }, 500);
       }else{
         console.log("pendiente implementar selección de camino");
         this.estado = "C";
         this.transmitir();
-        this.jugadorActual.avanzarCaminata(ruta1);
+        setTimeout(() => {          
+          this.jugadorActual.avanzarCaminata(ruta1);
+        }, 500);
       //     $tablero->mostrarCaminos($idpartida,$rutas,$cnn);
       //     $variable = new Variables();
       //     $variable->guardar($idpartida, "rutas", json_encode($rutas), $cnn);
