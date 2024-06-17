@@ -1,4 +1,4 @@
-const Casillas = require('./casillas');
+const {CA} = require('./valores');
 
 class Ruta {
     
@@ -27,7 +27,7 @@ class Ruta {
     esCambioCarrilAnioNuevo(){
         let res = true;
         this.casilleros.every((cas) => {
-            if(![Casillas.ANIO_NUEVO_ROSADO,Casillas.ANIO_NUEVO_CELESTE,Casillas.ANIO_NUEVO_VERDE].includes(cas)){
+            if(![CA.ANIO_NUEVO_ROSADO,CA.ANIO_NUEVO_CELESTE,CA.ANIO_NUEVO_VERDE].includes(cas)){
                 res = false;
                 return false;
             }
@@ -40,7 +40,7 @@ class Ruta {
     esCambioCarrilFestividades(){
         let res = true;
         this.casilleros.every((cas) => {
-            if(![Casillas.FESTIVIDADES_ROSADO,Casillas.FESTIVIDADES_CELESTE,Casillas.FESTIVIDADES_VERDE].includes(cas)){
+            if(![CA.FESTIVIDADES_ROSADO,CA.FESTIVIDADES_CELESTE,CA.FESTIVIDADES_VERDE].includes(cas)){
                 res = false;
                 return false;
             }
@@ -53,12 +53,6 @@ class Ruta {
     esCambioCarril(){
         return this.esCambioCarrilAnioNuevo() || this.esCambioCarrilFestividades();
     }
-
-    // fromJson($jsonStr){
-    //     $rutajSon = json_decode($jsonStr);
-    //     this.casilleros = $rutajSon->casilleros;
-    //     this.numMeses = $rutajSon->numMeses;
-    // }
 
     getFin(){
         return this.casilleros[this.casilleros.length-1];
