@@ -61,7 +61,7 @@ class Rutas {
             }
             else{          
                 cam2 = this.avanzarUnaCasilla(cam2);
-                console.log(`i= ${i},ruta1 = ${ruta1[i]}`);//,site_i=${JSON.stringify(sites[ruta1[i]])}`);
+                //console.log(`ruta1[${i}] = ${ruta1[i]}`);
                 if(sites[ruta1[i]].tipo == CA_TIPO.MES)cmes1++;
                 if(ruta2[i]!=-1 && sites[ruta2[i]].tipo ==  CA_TIPO.MES)cmes2++;
             }
