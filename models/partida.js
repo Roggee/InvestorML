@@ -184,22 +184,18 @@ class Partida {
       }
       //si solo hay un camino 
       if(rutas.getCantidadRutas()==1){
-        this.estado = "C";
+        this.estado = PE.CAMINANDO;
         this.transmitir();
         setTimeout(() => {          
           this.jugadorActual.avanzarCaminata(ruta1);
         }, 500);
       }else{
-        console.log("pendiente implementar selección de camino");
-        this.estado = "C";
-        this.transmitir();
-        setTimeout(() => {          
-          this.jugadorActual.avanzarCaminata(ruta1);
+        setTimeout(() => {
+          this.rutas = rutas;
+          this.tablero.mostrarCaminos(rutas);
+          this.estado = PE.DECIDIENDO_CAMINO;
+          this.transmitir();
         }, 500);
-      //     $tablero->mostrarCaminos($idpartida,$rutas,$cnn);
-      //     $variable = new Variables();
-      //     $variable->guardar($idpartida, "rutas", json_encode($rutas), $cnn);
-      //     $this->cambiarEstado($idpartida, Partida::DECIDIENDO_CAMINO, $cnn);
       }
     }
     /**

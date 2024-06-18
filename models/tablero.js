@@ -179,15 +179,19 @@ class Tablero{
         return iPosInterna;
     }
 
-
-    // public function mostrarCaminos($idpartida, Rutas $rutas, Conexion $cnn) {
-    //     $finP = $rutas->getPrincipal()->getFin();
-    //     $finS = $rutas->getSecundario()->getFin();
-    //     $cnn->consultar("UPDATE mls_tablero SET ".
-    //                     "       elegible = CASE WHEN id in($finP,$finS) THEN true ELSE false END, ".
-    //                     "       transparencia = CASE WHEN id in($finP,$finS) THEN 1.0 ELSE 0.5 END ".
-    //                     "WHERE idpartida = $idpartida");
-    // }
+    mostrarCaminos(rutas) {
+        const finP = rutas.principal.getFin();
+        const finS = rutas.secundario.getFin();
+        this.casilleros.forEach( (c,index) => {
+            if([finP,finS].includes(index)){
+                c.elegible = true;
+                c.transparencia = 1.0;
+            }else{
+                c.elegible = false;
+                c.transparencia = 0.5;
+            }
+        });
+    }
     
     // /**
     //  * muestra y devuelve la cantidad de titulos disponibles del jugador actuales.
