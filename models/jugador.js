@@ -167,6 +167,16 @@ class Jugador{
     //if($partida->evaluarGanador($idpartida, $cnn)) return;
     this.partida.tablero.procesarCasilla(this,ruta); //procesa CASILLA ACTUAL
   }
+  evaluarSeleccionCamino(idcasilla) {
+    //this.partida.tablero.limpiar();
+    this.iniciarCaminata();
+    this.partida.estado = PE.CAMINANDO;
+    const rutas = this.partida.rutas;
+    //console.log(`las rutas a elegir son ${JSON.stringify(rutas)}`);
+    const ruta = (rutas.principal.getFin()==idcasilla?rutas.principal:rutas.secundario);    
+    //console.log(`la rutas elegida es ${JSON.stringify(ruta)}`);
+    return ruta;
+  }
   /**
    * Devuelve FALSE si el siguiente jugador debe descansar en los demas casos de vuelve TRUE.
    */

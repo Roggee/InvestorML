@@ -279,10 +279,7 @@ wss.on('connection', function connection(ws, request) {
                 }
                 partida = ja.partida;
                 //calcular ruta y estado ficha
-                const ruta = evaluarSeleccionCasilla(ja,partida,msg.content);
-                partida.transmitir();
-                //calcular pasos y transmitir
-                ja.avanzarCaminata(ruta);
+                evaluarSeleccionCasilla(ja,partida,msg.content);
                 break;
             case "rollDice":
                 ja = validarJugador(msg,ws);
@@ -334,12 +331,18 @@ server.listen(port,() => {
 });
 
 function evaluarSeleccionCasilla(jugador,partida,idcasilla){
+    let ruta;
     switch(partida.estado){
         case PE.INICIO_TURNO:
         case PE.FINALIZANDO_TURNO:
-            return jugador.evaluarCambioCamino(idcasilla);
+            ruta = jugador.evaluarCambioCamino(idcasilla);
+            partida.transmitir();
+            jugador.avanzarCaminata(ruta);
+            break;
         case PE.DECIDIENDO_CAMINO:
-            //$this->evaluarJugadorDecideCamino($idjugador, $idpartida, $idcasilla, $cnn);
+            ruta = jugador.evaluarSeleccionCamino(idcasilla);
+            partida.transmitir();
+            jugador.avanzarCaminata(ruta);
             break;
         case PE.COMPRANDO_OF_OP:
             //$this->evaluarCompraOFOP($idjugador,$idpartida,$idcasilla,$cnn);
