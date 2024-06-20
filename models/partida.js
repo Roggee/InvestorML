@@ -48,6 +48,7 @@ class Partida {
       this.numJugadores = 0;
       this.jugadores = [];
       this.tablero = null;
+      this.dialogos = [];
     }
     minify(){
       let strp = JSON.stringify(this,(key,value)=>{
