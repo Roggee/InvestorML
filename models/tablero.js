@@ -1,5 +1,6 @@
 const Casillas = require("./casillas");
-const {PE,CA,CA_TIPO} = require("./valores");
+const Dialogo = require("./dialogo");
+const {PE,CA,CA_TIPO,DIAG_TIPO} = require("./valores");
 
 class Tablero{
 
@@ -8,15 +9,24 @@ class Tablero{
     constructor(partida) {
         this.partida = partida;
         this.casillerosDef = new Casillas();
+        this.titulos =[];
         this.casilleros = [];
-        for(let i=0;i<72;i++){
+        this.casillerosDef.items.forEach((c,i) => {
             this.casilleros.push({
                 color: Tablero.COLOR_PREDET,
                 transparencia: 1.0,
                 elegible: false,
                 posInternas: [false,false,false,false]
             });
-        }        
+            //agregar títulos de inversión y profesionales
+            if([CA_TIPO.TITULO_INVR,CA_TIPO.TITULO_PROF].includes(c.tipo)){
+                this.titulos.push({
+                    poseedores:[],
+                    cantDisponible:4, //la cantidad disponible de titulos. Por defecto es 4.
+                    idTitulo:i //igual que id de casilla
+                });
+            }
+        });        
     }
     /** 
      * Valida si el jugador se encuentra el Año nuevo o Festividades para permitirle la sessión de una ruta diferente.
@@ -55,19 +65,19 @@ class Tablero{
 
     procesarCasilla(jugador,ruta){
         const idcasilla = jugador.posicion;
-        const casilla = jugador.partida.tablero.casillerosDef.items[idcasilla];
-        const casillas = jugador.partida.tablero.casillerosDef;
+        const casilla = this.casillerosDef.items[idcasilla];
         switch(casilla.tipo){
             case CA_TIPO.TITULO_INVR:
-                // $titulo = new Titulo();
-                // $titulo->load($idpartida, $idcasilla, $cnn);
-                // //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
-                // //Para un titulo de inversión sólo existe un poseedor
-                // $dialogo = new Dialogo();
-                // if(count($titulo->poseedores)==0 || ($titulo->poseedores[0] == $jugador->id && $titulo->cantDisponible > 0)){
-                //     //activar ventana de compra de título con id casilla e id de jugador.
-                //     $dialogo->abrir($idpartida, Dialogo::COMPRAR_TITULO, "$idcasilla|$jugador->id", $cnn);
-                // }else if($titulo->poseedores[0] != $jugador->id){ //si alguién mas ya lo compro se le tiene pagar
+                const titulo = this.cargarInfo(idcasilla);
+                //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
+                //Para un titulo de inversión sólo existe un poseedor
+                const dialogo = new Dialogo(jugador.partida);
+                if(titulo.poseedores.length == 0 || (titulo.poseedores[0] == jugador.id && titulo.cantDisponible > 0)){
+                    //activar ventana de compra de título.
+                    dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,casilla);
+                }else if(titulo.poseedores[0] != jugador.id){ //si alguién mas ya lo compro se le tiene pagar
+                    console.log("Pendiente: si alguién mas ya lo compro se le tiene pagar");
+                    this.partida.finalizarTurno();
                 //     $resultado = $jugador->pagarUtilidades($jugador->id,$titulo->poseedores[0],$titulo,$cnn);
                 //     if($resultado){ //se la logrado pagar la deuda
                 //         $dialogo->abrir($idpartida, Dialogo::AVISO_PAGO_JUGADOR, $resultado, $cnn);
@@ -80,10 +90,10 @@ class Tablero{
                 //         $variable->guardar($idpartida, "deuda",$deuda, $cnn);
                 //         $dialogo->abrir($idpartida, Dialogo::DECLARAR_BANCAROTA, "$jugador->id", $cnn);
                 //     }
-                // }else{
+                }else{
                 //     $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
-                this.partida.finalizarTurno();
-                // }
+                    this.partida.finalizarTurno();
+                }
                 break;
             case CA_TIPO.TITULO_PROF:
                 // $titulo = new Titulo();
@@ -121,7 +131,7 @@ class Tablero{
                 console.log("anio nuevo, festividades, meses");
                 const reglas = this.partida.reglas;
                 //validar si se debe cobrar utilidad
-                if(ruta.esCambioCarrilAnioNuevo()&&(casillas.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
+                if(ruta.esCambioCarrilAnioNuevo()&&(this.casillerosDef.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
                    (this.partida.dVal!=0||(this.partida.dVal==0 && reglas.repetirAnioNuevo))){
                     console.log("pendiente implementar cobrar utilidad");
                     this.partida.finalizarTurno();
@@ -140,6 +150,19 @@ class Tablero{
                     this.partida.finalizarTurno();
                 }
         }        
+    }
+    cargarInfo(idcasilla){
+        const titulo = this.titulos.find( t => {return t.idTitulo == idcasilla});
+        let poseedores = [];
+        this.partida.jugadores.forEach( j => {
+            j.titulos.forEach( t => {
+                if(t.id==idcasilla){
+                    poseedores.push(j.id);
+                    titulo.cantDisponible-=t.num;
+                }
+            });
+        });
+        titulo.poseedores = poseedores;
     }
     limpiar(){
         const color = Tablero.COLOR_PREDET;

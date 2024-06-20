@@ -12,8 +12,8 @@ class Jugador{
     this.id=id;
     this.token="";
     this.nombre=nombre;
-    this.wsclient = null;
-    this.partida = null;
+    this.wsclient = undefined;
+    this.partida = undefined;
     this.colorId = 0;
     this.ficha = "Clásico";
     this.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
@@ -31,6 +31,7 @@ class Jugador{
     this.posRelativa = -1; // la posición dentro de casilla.
     this.fichaTransform = undefined;
     this.f1 = false; //para indicar si ha terminado la animación local de lanzamiento Dados
+    this.titulos = [];
   }
 
   minify(){
@@ -172,6 +173,8 @@ class Jugador{
     this.iniciarCaminata();
     this.partida.estado = PE.CAMINANDO;
     const rutas = this.partida.rutas;
+    //eliminar variable
+    this.partida.rutas = undefined;
     //console.log(`las rutas a elegir son ${JSON.stringify(rutas)}`);
     const ruta = (rutas.principal.getFin()==idcasilla?rutas.principal:rutas.secundario);    
     //console.log(`la rutas elegida es ${JSON.stringify(ruta)}`);
@@ -236,6 +239,49 @@ class Jugador{
     this.fichaEstado = Jugador.FICHA_ESTADO_ESPERAR;
     this.posRelativa = iLibre;
     this.partida.tablero.updatePosInternasCasilla();
+  }
+  comprarTitulo(idtitulo,mitadPrecio){
+    const titulo = this.partida.tablero.casillerosDef.items.find( c => {return c.id == idtitulo});
+    const precio = titulo.precio/(mitadPrecio?2:1);
+    if(precio <= this.efectivo){
+        this.efectivo -= precio;
+        this.adquirirTitulo(idtitulo);
+        //$partida->escribirNota($idpartida, "@j$this->id ha comprado $titulo->nombre por @d$precio", $cnn);
+        return true;
+    }
+    return false;    
+  }
+  adquirirTitulo(idtitulo){
+    const jt = this.titulos.find( t => {return t.id == idtitulo});
+    if(jt){
+      jt.num++;
+    }else{
+      this.titulos.push({id:idtitulo,num:1});
+    }
+    this.calcularUtilidadAnual();
+  }
+  calcularUtilidadAnual(){
+    console.log("Pendiente: Implementar cálculo de Utilidad Anual");
+    this.utilidadAnual += 0.1;
+    // $res = $cnn->consultar("SELECT T.totalUtiInv + T.totalUtiInv*T.esCientifico + T.numTituInv*5*T.esEconomista + T.esAbogado*50 + T.esMedico*50 AS utilidades ".
+    //                        "FROM (" .
+    //                        "         SELECT SUM(CASE WHEN C.tipo = 2 THEN CONVERT(TRIM(REPLACE(SUBSTR(SUBSTRING_INDEX(C.utilidades, ',', TJ.num),LENGTH(SUBSTRING_INDEX(C.utilidades, ',', TJ.num - 1))+2),']','')),FLOAT) ELSE 0 END ) AS totalUtiInv, ".
+    //                        "                SUM(CASE WHEN C.tipo = 2 THEN TJ.num ELSE 0 END) AS numTituInv,".
+    //                        "                SUM(CASE WHEN C.id = 34 THEN 1 ELSE 0 END) AS esCientifico,".
+    //                        "                SUM(CASE WHEN C.id = 26 THEN 1 ELSE 0 END) AS esEconomista,".
+    //                        "                SUM(CASE WHEN C.id = 22 THEN 1 ELSE 0 END) AS esAbogado,".
+    //                        "                SUM(CASE WHEN C.id = 8  THEN 1 ELSE 0 END) AS esMedico ".
+    //                        "        FROM mls_jugador_titulos TJ INNER JOIN mls_casillas C ON TJ.idtitulo = C.id ".
+    //                        "        WHERE TJ.idjugador=$idjugador ".
+    //                        "        GROUP BY TJ.idjugador ".
+    //                        ") AS T");
+    // $utilidades = 0;
+    // if(mysqli_num_rows($res)>0){
+    //     $row = mysqli_fetch_row($res);
+    //     $utilidades = (float)$row[0];
+    // }
+    
+    // $cnn->consultar("UPDATE mls_jugador SET utilidadAnual=$utilidades WHERE id = $idjugador");        
   }  
   /**
    * Envia estado PARCIAL del juego con los datos de un jugador a todos los jugadores de la partida actual.

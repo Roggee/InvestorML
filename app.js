@@ -7,7 +7,7 @@ const url = require("url");
 const jwt = require('jsonwebtoken');
 const JugadorFactory = require("./models/jugadorFactory.js");
 const PartidaFactory = require("./models/partidaFactory.js");
-const {PE} = require("./models/valores");
+const {PE,DIAG_TIPO,DIAG_RSP} = require("./models/valores");
 
 //token secret
 let secret = '1nv3$t0r';
@@ -36,15 +36,16 @@ wss.on('connection', function connection(ws, request) {
     ws.on('message', function message(data) {        
         console.log(`Mensaje recibido: ${data}`);
         const msg = JSON.parse(data);
+        const contenido = msg.content;
         let ja = null;
         let partida = null;
         switch(msg.type){
             case "login":
-                let username = msg.content;
+                let username = contenido;
                 conectarUsuario(username,ws);
                 break;
             case "createGame":
-                let nombrePartida = msg.content;
+                let nombrePartida = contenido;
                 //Validar nombre de partida
                 if(prtFact.getByNombre(nombrePartida)){ 
                     enviarError(ws,"ya existe una partida con ese nombre");
@@ -91,7 +92,7 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
 
-                let idp = msg.content;
+                let idp = contenido;
                 partida = prtFact.getById(idp);
                 if(!partida){
                     enviarError(ws,`No puedes unirte a la partida "${idp}" porque no existe`);
@@ -141,10 +142,10 @@ wss.on('connection', function connection(ws, request) {
                 if(!ja) return;
                 partida = ja.partida;
                 partida.jugadores.forEach( j => {
-                    let rsp = {type:"message",content:`${ja.nombre}: ${msg.content}`};
+                    let rsp = {type:"message",content:`${ja.nombre}: ${contenido}`};
                     j.wsclient.send(JSON.stringify(rsp));
                 });
-                console.log(`${ja.nombre} ha enviado el mensaje "${msg.content}"`);
+                console.log(`${ja.nombre} ha enviado el mensaje "${contenido}"`);
                 break;
             case "logout":
                 ja = jugFact.getByToken(msg.token);
@@ -179,17 +180,17 @@ wss.on('connection', function connection(ws, request) {
                 ja = validarJugador(msg,ws);
                 if(!ja) return;                
                 partida =  ja.partida;
-                const colorId = msg.content.colorId;
+                const colorId = contenido.colorId;
                 if(partida.jugadores.find( j => j.colorId === colorId && j.id !== ja.id)){
                     enviarError(ws,`El color ${Partida.colores[colorId].nombre} no está disponible`);
                     return;
                 }
-                if(ja.colorId === colorId && ja.ficha === msg.content.fichaNom){
+                if(ja.colorId === colorId && ja.ficha === contenido.fichaNom){
                     console.log("No ha cambiado ni la ficha ni el color");
                     return;
                 }
                 ja.colorId = colorId;
-                ja.ficha = msg.content.fichaNom;                
+                ja.ficha = contenido.fichaNom;                
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
                     j.wsclient.send(JSON.stringify(rsp));
@@ -203,11 +204,11 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 partida = ja.partida;
-                if(JSON.stringify(partida.reglas)==JSON.stringify(msg.content)){
+                if(JSON.stringify(partida.reglas)==JSON.stringify(contenido)){
                     console.log("las reglas NO han cambiado");
                     return;
                 }
-                partida.reglas = msg.content;
+                partida.reglas = contenido;
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"game",content:{partida:partida.minify(),msj:"Las reglas han sido actualizadas"}};
                     j.wsclient.send(JSON.stringify(rsp));
@@ -217,7 +218,7 @@ wss.on('connection', function connection(ws, request) {
             case "setReady":
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
-                ja.listo = msg.content;
+                ja.listo = contenido;
                 partida = ja.partida;
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"game",content:{partida:partida.minify(),msj:""}};
@@ -236,7 +237,7 @@ wss.on('connection', function connection(ws, request) {
                         partida.iniciar();
                         partida.transmitir();
                     },2*1000);
-                }else if(listos.length==partida.maxJugadores-1 && !msg.content){
+                }else if(listos.length==partida.maxJugadores-1 && !contenido){
                     console.log("Cancelando inicio de partida...");
                 }
                 break;
@@ -248,7 +249,7 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 partida = ja.partida;
-                let mj = msg.content;
+                let mj = contenido;
                 //validar que la cantidad máxima ingresada no sea menor que la cantidad actual de jugadores
                 if(partida.jugadores.length > mj){
                     enviarError(ws,"La cantidad maxima de jugadores no puede disminuir");
@@ -279,7 +280,7 @@ wss.on('connection', function connection(ws, request) {
                 }
                 partida = ja.partida;
                 //calcular ruta y estado ficha
-                evaluarSeleccionCasilla(ja,partida,msg.content);
+                evaluarSeleccionCasilla(ja,partida,contenido);
                 break;
             case "rollDice":
                 ja = validarJugador(msg,ws);
@@ -289,9 +290,8 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 partida = ja.partida;
-                const valor = msg.content;
-                console.log(`el valor de los dados es ${valor}`);
-                partida.lanzarDados(valor);
+                console.log(`el valor de los dados es ${contenido}`);
+                partida.lanzarDados(contenido);
                 partida.transmitir();
                 break;
             case "evaluateDice":
@@ -319,6 +319,20 @@ wss.on('connection', function connection(ws, request) {
                 if(ok) partida.estado = PE.INICIO_TURNO;
                 partida.transmitir();
                 break;
+            case "closeDialog":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                const idg = contenido.idg;
+                const rc = contenido.rc;
+                const idObj = contenido.idObj;
+                evaluarCerrarDialogo(ja,idg,rc,idObj);
+                partida.transmitir();
+                break;                
         }
     });
     ws.on('close', () => {
@@ -357,6 +371,173 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
             //$this->evaluarDecidirSuerte($idpartida,$idjugador,$idcasilla,$cnn);
             break;
     }    
+}
+
+function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
+    const partida = jugador.partida;
+    dialogo = partida.dialogos.find( d=> {return d.id==idg});
+    if(!dialogo) {
+        enviarError(jugador.wsclient,`el dialogo ${idg} no existe`);
+        return;
+    }
+    dialogo.cerrar();
+    switch (dialogo.tipo){
+        // case Dialogo::COMODIN:
+        //     $this->evaluarCierreComodin($idObj,$idjugador,$idpartida,$cnn);
+        //     break;
+        // case Dialogo::AVISO_PAGARES_PAGO:
+        //     $partida->evaluarGanador($idpartida, $cnn);
+        //     break;
+        // case Dialogo::DECLARAR_BANCAROTA:
+        //     switch($rc){
+        //         case Dialogo::RET_OK:
+        //             $vars = new Variables();
+        //             $acreedores = $vars->tomar($idpartida, "acreedores", $cnn);
+        //             $deuda = $vars->tomar($idpartida, "deuda", $cnn);
+        //             $jugador->declararBancaRota($idjugador,json_decode($acreedores), $deuda, $cnn);
+        //             $jugador = $jugador->getPorId($idjugador, $cnn);
+        //             $dialogo->abrir($idpartida, Dialogo::AVISO_SI_BANCAROTA, "@j$jugador->id se ha declarado en banca rota|$idjugador", $cnn);
+        //             $partida->escribirNota($idpartida, "@j$jugador->id se ha declarado en banca rota", $cnn);
+        //             break;
+        //         case Dialogo::RET_CANCEL:
+        //             $vars = new Variables();
+        //             $partida->esperarTurno($idpartida, $cnn, false);
+        //             $deuda = $vars->obtener($idpartida, "deuda", $cnn);
+        //             $partida->escribirNota($idpartida, "@j$idjugador debe pagar @d$deuda", $cnn);
+        //             break;
+        //         default:
+        //             $codError= 130;
+        //             throw new Exception("dialogo return code $rc no permitida");
+        //     }
+        //     break;
+        // case Dialogo::PAGAR_DEUDA:
+        //     switch($rc){
+        //         case Dialogo::RET_OK:
+        //             $res = $jugador->pagarDeuda($idjugador,$cnn);
+        //             if($res){
+        //                 $dialogo->abrir($idpartida, Dialogo::AVISO_PAGARES_PAGO, $res, $cnn);
+        //                 $partida->escribirNota($idpartida, $res, $cnn);
+        //             }else{
+        //                 //TODO: enviar mensaje de error que no pudo pagarse la deuda.
+        //                 $partida->finalizarTurno($idpartida, $cnn);
+        //             }                        
+        //             break;
+        //         case Dialogo::RET_CANCEL:
+        //             $variable = new Variables();
+        //             $jugadorBackup = $variable->tomar($idpartida, "jugadorBackup", $cnn);
+        //             $partida->setNoGanador($idpartida, $cnn);
+        //             $partida->setJugadorActual($idpartida,$jugadorBackup,$cnn);
+        //             $jActual = $partida->getJugadorActual($idpartida, $cnn);
+        //             $partida->escribirNota($idpartida, "@j$jActual->id ha decidido no pagar su deuda", $cnn);
+        //             $partida->finalizarTurno($idpartida, $cnn);
+        //             break;
+        //         default:
+        //             $codError= 130;
+        //             throw new Exception("dialogo return code $rc no permitida");
+        //     }
+        //     break;
+        // case Dialogo::AVISO_SI_BANCAROTA:
+        //     $variable = new Variables();
+        //     $jugadorBackup = $variable->tomar($idpartida, "jugadorBackup", $cnn);
+        //     if($jugadorBackup){ //si hay un backup significa que el turno no es del jugador actual real. Se debe devolver el turno
+        //         $partida->setJugadorActual($idpartida,$jugadorBackup,$cnn);
+        //         $partida->finalizarTurno($idpartida, $cnn);
+        //     }else{//es el turno de jugador en banca rota.
+        //         $this->avanzarTurno($idpartida,$cnn);
+        //     }                
+        //     $partida->evaluarGanador($idpartida, $cnn);
+        //     break;
+        // case Dialogo::AVISO_PAGO_JUGADOR:
+        //     $hayGanador = $partida->evaluarGanador($idpartida, $cnn);
+        //     if(!$hayGanador){
+        //         $partida->finalizarTurno($idpartida, $cnn);
+        //     }
+        //     break;
+        // case Dialogo::AVISO_FERIADO:
+        //     $partida->escribirNota($idpartida, "@j$idjugador está tomandose un feriado", $cnn);
+        //     $this->avanzarTurno($idpartida,$cnn);
+        //     break;
+        // case Dialogo::AVISO_INICIO:
+        //     $partida->iniciar($idpartida,$cnn);
+        //     break;
+        case DIAG_TIPO.COMPRAR_TITULO:
+            switch(rc){
+                case DIAG_RSP.OK:
+                    const idtitulo = jugador.posicion;
+                    if(!jugador.comprarTitulo(idtitulo,false)){
+                        enviarError(jugador.wsclient,`No tienes efectivo suficiente`);
+                    }
+                    partida.finalizarTurno();                 
+                    break;
+                case DIAG_RSP.WAIT:
+                    //$partida->esperarTurno($idpartida, $cnn, false);
+                    enviarError(jugador.wsclient,`pendiente implementar WAIT COMPRA`);
+                    break;
+                case DIAG_RSP.CANCEL:
+                    partida.finalizarTurno();
+                    break;
+                default:
+                    enviarError(jugador.wsclient,`dialogo return code ${rc} no permitida`);
+
+            }
+            break;
+        // case Dialogo::AVISO_COBRAR_UTILIDAD:
+        //     $idjugador = $partida->getJugadorActual($idpartida, $cnn);
+        //     $jugador->cobrarUtilidadAnual($idjugador, $cnn);
+        //     $jugador->loadById($idjugador, $cnn);
+        //     $partida->escribirNota($idpartida, "@j$idjugador ha cobrado sus utilidades por @d$jugador->utilidadAnual", $cnn);
+        //     $hayGanador = $partida->evaluarGanador($idpartida, $cnn);
+        //     if(!$hayGanador){
+        //         $partida->finalizarTurno($idpartida, $cnn);
+        //     }
+        //     break;
+        // case Dialogo::AVISO_DESCANSO:
+        //     $partida->escribirNota($idpartida, "@j$idjugador descansará 1 turno mas", $cnn);
+        //     $this->avanzarTurno($idpartida,$cnn);
+        //     break;
+        // case Dialogo::DEVOLVER_TITULOS:
+        //     $variable = new Variables();
+        //     $frmTitulosStr = $variable->tomar($idpartida, "frmTitulos", $cnn);
+        //     $frmTitulos = json_decode($frmTitulosStr);
+        //     foreach($frmTitulos->grpDestino as $titulo){
+        //         $jugador->devolverTitulo($idjugador, $titulo->idt, $titulo->q, $cnn);
+        //     }
+        //     $titulosStr = $this->decorarTitulos($frmTitulos->grpDestino,$cnn);
+        //     $mensaje = "@j$idjugador ha pedido $titulosStr";
+        //     $partida->escribirNota($idpartida, $mensaje, $cnn);
+        //     $partida->finalizarTurno($idpartida, $cnn);
+        //     break;
+        // case Dialogo::VENDER_TITULOS:
+        //     switch($rc){
+        //         case Dialogo::RET_OK:
+        //             $variable = new Variables();
+        //             $frmTitulosStr = $variable->tomar($idpartida, "frmTitulos", $cnn);
+        //             $frmTitulos = json_decode($frmTitulosStr);
+        //             foreach($frmTitulos->grpDestino as $titulo){
+        //                 $jugador->devolverTitulo($idjugador, $titulo->idt, $titulo->q, $cnn);
+        //             }
+        //             $jugador->cobrarDinero($idjugador, $frmTitulos->recaudado, $cnn);
+        //             $titulosStr = $this->decorarTitulos($frmTitulos->grpDestino,$cnn);
+        //             $mensaje = "@j$idjugador ha recibido @d$frmTitulos->recaudado por sus $titulosStr";
+        //             $partida->escribirNota($idpartida, $mensaje, $cnn);
+        //             break;
+        //         case Dialogo::RET_CANCEL:
+        //             //ninguna accion
+        //             break;
+        //         default:
+        //             $codError= 120;
+        //             throw new Exception(("dialogo return code $rc no permitida"));
+        //     }
+        //     break;
+        // case Dialogo::AVISO_SALDO_INSUFICIENTE:
+        // case Dialogo::AVISO_PRIMERO_TITULO_PROPIO:
+        // case Dialogo::AVISO_VENDER_SIN_TITULOS:
+        //     //no hacer nada.
+        //     break;
+        // default:
+        //     $partida->finalizarTurno($idpartida, $cnn);
+        //     break;
+    }
 }
 
 function validarJugador(msg,ws){
