@@ -1,5 +1,5 @@
 const Ruta = require("./ruta");
-const {TABLA_DADOS,CA_TIPO,CA} = require("./valores");
+const {CA_TIPO,CA} = require("./valores");
 
 class Rutas {
     constructor(){
@@ -54,7 +54,7 @@ class Rutas {
                     ruta2[i] = -1;
                 }
                 //para el caso que inicie en un mes con dados en cero
-                if(sites[posIni].tipo == CA.TIPO_MES && longitud==0){
+                if(sites[posIni].tipo == CA_TIPO.MES && longitud==0){
                     cmes1=1;
                     cmes2=1;
                 }
