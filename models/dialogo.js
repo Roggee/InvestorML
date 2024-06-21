@@ -18,7 +18,8 @@ class Dialogo{
         this.id = maxId+1;
         this.tipo = tipo;
         this.contenido = contenido;
-        this.partida.dialogos.push(this);
+        //insertar al inicio. En el cliente, sólo la primera ventana se mostrará.
+        this.partida.dialogos =[this,...this.partida.dialogos];
     }
 
     cerrar(){
