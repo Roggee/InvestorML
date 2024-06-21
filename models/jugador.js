@@ -1,7 +1,7 @@
 const Casillas = require('./casillas');
 const Ruta = require('./ruta');
 const THREE = require('three');
-const {PE,CA_POS_INTERNAS} = require("./valores");
+const {PE,CA,CA_POS_INTERNAS} = require("./valores");
 
 class Jugador{
   static FICHA_ESTADO_ESPERAR = 1;
@@ -55,6 +55,10 @@ class Jugador{
     this.turnosDescanso = 0;                
     this.deuda = 0.0;
     this.orden = 0;
+    this.titulos = [];
+  }
+  tiene(idTitulo){
+    return this.titulos.find( t => {return t.id == idTitulo});
   }
   /**
    * Calcular posición y postura según si es jugador actual o no
@@ -246,6 +250,7 @@ class Jugador{
     if(precio <= this.efectivo){
         this.efectivo -= precio;
         this.adquirirTitulo(idtitulo);
+        this.partida.tablero.entregarTitulo(this,idtitulo);
         //$partida->escribirNota($idpartida, "@j$this->id ha comprado $titulo->nombre por @d$precio", $cnn);
         return true;
     }
@@ -282,6 +287,53 @@ class Jugador{
     // }
     
     // $cnn->consultar("UPDATE mls_jugador SET utilidadAnual=$utilidades WHERE id = $idjugador");        
+  }
+  pagarUtilidades(idAcreedor,titInfo){
+    const acreedor = this.partida.jugadores.find( j=> {return j.id == idAcreedor});
+    const jt = acreedor.tiene(titInfo.id);
+    let utilidades = 0;
+    //sumar utilidades de propieddad
+    utilidades += titInfo.utilidades[jt.num-1];
+    //duplicar cientifico
+    utilidades += utilidades*(acreedor.tiene(CA.CIENTIFICO)?1:0);
+    //sumar economista
+    utilidades += jt.num*(acreedor.tiene(CA.ECONOMISTA)?5:0);
+    //pagar obligaciones
+    return this.pagar([acreedor],utilidades);
+  }
+  pagar(acreedores,pago){
+    if(acreedores.length==0){ //pagar al banco
+        if(pago<=this.efectivo){
+          this.efectivo-=pago;
+          return `@j${this.id} ha pagado @d${pago} al BANCO`;
+        }
+    }else{ //pagar a jugadores
+        const pagoReal = pago*acreedores.length;
+        let nombres="";
+        if(pagoReal<=this.efectivo){
+            acreedores.forEach(acreedor => {
+                nombres+=`@j${acreedor.id}, `;
+                acreedor.efectivo+=pago;
+                this.efectivo-=pago;
+            });
+            nombres = this.decorarNombres(nombres);
+            return `@j${this.id} ha pagado @d${pagoReal} a ${nombres}`;
+        }
+    }
+    return false;
+  }
+  /**
+   * Se espera una lista de nombres con el formato: nombre1, nombre2, nombre3, ...
+   */
+  decorarNombres(nombresRaw){
+    //borrar el último concatenador ", "
+    let nombres = nombresRaw.substring(0,nombresRaw.length-2);
+    //ubicar el último indices de ","
+    const i = nombres.lastIndexOf(",");
+    //reemplazar la última "," con " y"
+    if(i>=0) nombres = nombres.substring(0,i)+" y".nombres.substring(i+1);
+    
+    return nombres;
   }  
   /**
    * Envia estado PARCIAL del juego con los datos de un jugador a todos los jugadores de la partida actual.

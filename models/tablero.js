@@ -23,7 +23,7 @@ class Tablero{
                 this.titulos.push({
                     poseedores:[],
                     cantDisponible:4, //la cantidad disponible de titulos. Por defecto es 4.
-                    idTitulo:i //igual que id de casilla
+                    id:i //igual que id de casilla
                 });
             }
         });        
@@ -68,7 +68,7 @@ class Tablero{
         const casilla = this.casillerosDef.items[idcasilla];
         switch(casilla.tipo){
             case CA_TIPO.TITULO_INVR:
-                const titulo = this.cargarInfo(idcasilla);
+                const titulo = this.titulos.find( t => {return t.id == idcasilla});
                 //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
                 //Para un titulo de inversión sólo existe un poseedor
                 const dialogo = new Dialogo(jugador.partida);
@@ -76,20 +76,22 @@ class Tablero{
                     //activar ventana de compra de título.
                     dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,casilla);
                 }else if(titulo.poseedores[0] != jugador.id){ //si alguién mas ya lo compro se le tiene pagar
-                    console.log("Pendiente: si alguién mas ya lo compro se le tiene pagar");
-                    this.partida.finalizarTurno();
-                //     $resultado = $jugador->pagarUtilidades($jugador->id,$titulo->poseedores[0],$titulo,$cnn);
-                //     if($resultado){ //se la logrado pagar la deuda
-                //         $dialogo->abrir($idpartida, Dialogo::AVISO_PAGO_JUGADOR, $resultado, $cnn);
-                //         $partida->escribirNota($idpartida, $resultado, $cnn);
-                //     }else{ //no se pudo pagar la deuda. Insolvente
+                    const resultado = jugador.pagarUtilidades(titulo.poseedores[0],casilla);
+                    if(resultado){ //se la logrado pagar la deuda
+                        console.log(`Pendiente: ${resultado}`);
+                        this.partida.finalizarTurno();
+                        // $dialogo->abrir($idpartida, Dialogo::AVISO_PAGO_JUGADOR, $resultado, $cnn);
+                        // $partida->escribirNota($idpartida, $resultado, $cnn);
+                    }else{ //no se pudo pagar la deuda. Insolvente
+                        console.log("Pendiente: no se pudo pagar la deuda. Insolvente");
+                        this.partida.finalizarTurno();
                 //         $deuda = $jugador->calcularPago($titulo->poseedores[0],$titulo,$cnn);
                 //         $variable = new Variables();
                 //         // al ser un título de inversión se tiene sólo un poseedor por lo que lo que se entrega es una lista de 1.
                 //         $variable->guardar($idpartida, "acreedores", json_encode($titulo->poseedores), $cnn);
                 //         $variable->guardar($idpartida, "deuda",$deuda, $cnn);
                 //         $dialogo->abrir($idpartida, Dialogo::DECLARAR_BANCAROTA, "$jugador->id", $cnn);
-                //     }
+                    }
                 }else{
                 //     $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
                     this.partida.finalizarTurno();
@@ -151,18 +153,12 @@ class Tablero{
                 }
         }        
     }
-    cargarInfo(idcasilla){
-        const titulo = this.titulos.find( t => {return t.idTitulo == idcasilla});
-        let poseedores = [];
-        this.partida.jugadores.forEach( j => {
-            j.titulos.forEach( t => {
-                if(t.id==idcasilla){
-                    poseedores.push(j.id);
-                    titulo.cantDisponible-=t.num;
-                }
-            });
-        });
-        titulo.poseedores = poseedores;
+    entregarTitulo(jugador,idtitulo){
+        const titulo = this.titulos.find( t => {return t.id == idtitulo});
+        if(!titulo.poseedores.find(id => {return id == jugador.id})){
+            titulo.poseedores.push(jugador.id);
+        }
+        titulo.cantDisponible--;
     }
     limpiar(){
         const color = Tablero.COLOR_PREDET;
