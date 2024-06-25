@@ -1,7 +1,8 @@
 const Jugador = require("./jugador");
 const Tablero = require("./tablero");
 const Rutas = require("./rutas");
-const {PE,TABLA_DADOS} = require("./valores");
+const {PE,TABLA_DADOS,DIAG_TIPO} = require("./valores");
+const Dialogo = require("./dialogo");
 
 class Partida {
     static PQT_COMPLETO             =   1;
@@ -29,7 +30,7 @@ class Partida {
       this.estadoInicial=""; //para validar el estado previo al cambio de carrill en una evaluación de casilla
       this.maxJugadores=2;
       this.reglas={
-        modoVictoria: "lf",
+        modoVictoria: "lf", // us: último sobreviviente, lf: límite de fortuna
         limiteFortuna: 1000,
         pararAnioNuevo: true,
         repetirAnioNuevo: false,
@@ -38,16 +39,16 @@ class Partida {
         salario: 0.5,
         tributos: 5,
       }
-      this.host=null;
+      this.host=undefined;
       this.d1Ix=undefined;
       this.d2Ix=undefined;
       this.dVal=undefined;
-      this.jugadorActual=null;
+      this.jugadorActual=undefined;
       this.btnAccion = Partida.BOTON_ACCION_LANZAR;
-      this.ganador = 0; //si es diferente de cero entonces hay un ganador
+      this.ganador = undefined; //si es está definido entonces hay un ganador
       this.numJugadores = 0;
       this.jugadores = [];
-      this.tablero = null;
+      this.tablero = undefined;
       this.dialogos = [];
     }
     minify(){
@@ -55,7 +56,7 @@ class Partida {
         if (["wsclient","token","casillerosDef","f1","posInternas"].includes(key)) return undefined;
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
-        if (key=="jugadorActual") return (value?value.id:undefined);
+        if (key=="jugadorActual"||key=="ganador") return (value?value.id:undefined);
         return value;
       });
       let copia = JSON.parse(strp);
@@ -77,9 +78,9 @@ class Partida {
       return true;
     }
     eliminarJugador(jugador){
-      jugador.partida = null;
-      jugador.isHost=false;
-      jugador.listo=false;
+      jugador.partida = undefined;
+      jugador.isHost = false;
+      jugador.listo = false;
       //jugador.ficha ="Clásico";
       this.jugadores = this.jugadores.filter( j => j !== jugador);
       this.numJugadores=this.jugadores.length;
@@ -227,7 +228,45 @@ class Partida {
       if(sig>max) sig = min;
       const jSig = this.jugadores.find( j => {return j.orden == sig});
       return jSig;
-    }    
+    }
+    /**
+     * Verifica con las reglas del juego si ya se tiene un ganador por límite de fortuna. 
+     * Si hay mas de un ganador entonces se elige al primero segun orden de juego.
+     * También considera si sólo hay un jugador restante verificando si está en banca rota
+     */
+    evaluarGanador() {
+      let jGanador = this.evaluarGanadorLimiteFortuna();
+      if(!jGanador){
+        jGanador = this.evaluarGanadorUltimoSobreviviente();
+      }
+      if(jGanador){
+        jGanador.activarFicha();
+        this.ganador = jGanador;
+        this.jugadorActual = jGanador;        
+        this.estado = PE.GANADOR;        
+        const dialogo = new Dialogo(this);
+        dialogo.abrir(DIAG_TIPO.GANADOR,{texto:`¡Felicitaciones, @j${jGanador.id} ha ganado!`});
+        //$this->escribirNota($idpartida, "¡@j$idjugador ha ganado la partida!", $cnn);          
+        return true;
+      }
+      return false;
+    }
+    evaluarGanadorLimiteFortuna() { 
+      if( this.reglas.modoVictoria == "lf"){
+        //Ganador por límite de fortuna
+        const jGanador = this.jugadores.find( j => {return j.efectivo>= this.reglas.limiteFortuna && !j.bancaRota });
+        return jGanador;
+      }
+    }
+
+    evaluarGanadorUltimoSobreviviente() {
+      //Ganador por último sobreviviente.
+      const restantes = this.jugadores.filter( j => !j.bancaRota);      
+      if(restantes.length==1){
+          const jGanador = restantes[0];
+          return jGanador;
+      }
+    }        
     /**
      * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
      */
