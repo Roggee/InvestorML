@@ -78,19 +78,12 @@ class Tablero{
                 }else if(titulo.poseedores[0] != jugador.id){ //si alguién mas ya lo compro se le tiene pagar
                     const resultado = jugador.pagarUtilidades(titulo.poseedores[0],casilla);
                     if(resultado){ //se la logrado pagar la deuda
-                        console.log(`Pendiente: ${resultado}`);
-                        this.partida.finalizarTurno();
-                        // $dialogo->abrir($idpartida, Dialogo::AVISO_PAGO_JUGADOR, $resultado, $cnn);
+                        dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR,{texto: resultado});
                         // $partida->escribirNota($idpartida, $resultado, $cnn);
                     }else{ //no se pudo pagar la deuda. Insolvente
-                        console.log("Pendiente: no se pudo pagar la deuda. Insolvente");
-                        this.partida.finalizarTurno();
-                //         $deuda = $jugador->calcularPago($titulo->poseedores[0],$titulo,$cnn);
-                //         $variable = new Variables();
-                //         // al ser un título de inversión se tiene sólo un poseedor por lo que lo que se entrega es una lista de 1.
-                //         $variable->guardar($idpartida, "acreedores", json_encode($titulo->poseedores), $cnn);
-                //         $variable->guardar($idpartida, "deuda",$deuda, $cnn);
-                //         $dialogo->abrir($idpartida, Dialogo::DECLARAR_BANCAROTA, "$jugador->id", $cnn);
+                        const deuda = jugador.calcularPago(titulo.poseedores[0],casilla);
+                        dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{texto: `@j${jugador.id} tiene una deuda superior a sus fondos en efectivo ¿Desea declararse en BANCA ROTA?`,
+                                                      iddeudor:jugador.id, idacreedores:titulo.poseedores, deuda: deuda});
                     }
                 }else{
                 //     $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
