@@ -375,6 +375,7 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
 
 function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
     const partida = jugador.partida;
+    let hayGanador;
     dialogo = partida.dialogos.find( d=> {return d.id==idg});
     if(!dialogo) {
         enviarError(jugador.wsclient,`el dialogo ${idg} no existe`);
@@ -388,28 +389,15 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         // case Dialogo::AVISO_PAGARES_PAGO:
         //     $partida->evaluarGanador($idpartida, $cnn);
         //     break;
-        // case Dialogo::DECLARAR_BANCAROTA:
-        //     switch($rc){
-        //         case Dialogo::RET_OK:
-        //             $vars = new Variables();
-        //             $acreedores = $vars->tomar($idpartida, "acreedores", $cnn);
-        //             $deuda = $vars->tomar($idpartida, "deuda", $cnn);
-        //             $jugador->declararBancaRota($idjugador,json_decode($acreedores), $deuda, $cnn);
-        //             $jugador = $jugador->getPorId($idjugador, $cnn);
-        //             $dialogo->abrir($idpartida, Dialogo::AVISO_SI_BANCAROTA, "@j$jugador->id se ha declarado en banca rota|$idjugador", $cnn);
-        //             $partida->escribirNota($idpartida, "@j$jugador->id se ha declarado en banca rota", $cnn);
-        //             break;
-        //         case Dialogo::RET_CANCEL:
-        //             $vars = new Variables();
-        //             $partida->esperarTurno($idpartida, $cnn, false);
-        //             $deuda = $vars->obtener($idpartida, "deuda", $cnn);
-        //             $partida->escribirNota($idpartida, "@j$idjugador debe pagar @d$deuda", $cnn);
-        //             break;
-        //         default:
-        //             $codError= 130;
-        //             throw new Exception("dialogo return code $rc no permitida");
-        //     }
-        //     break;
+        case DIAG_TIPO.DECLARAR_BANCAROTA:
+            const idacreedores = dialogo.contenido.idacreedores;
+            const deuda = dialogo.contenido.deuda;
+            const deudor = partida.jugadores.find(j=>{return j.id == dialogo.contenido.iddeudor});
+            deudor.declararBancaRota(idacreedores,deuda);
+            // $partida->escribirNota($idpartida, "@j$jugador->id se ha declarado en banca rota", $cnn);
+            hayGanador = partida.evaluarGanador();
+            if(!hayGanador) partida.finalizarTurno();
+            break;
         // case Dialogo::PAGAR_DEUDA:
         //     switch($rc){
         //         case Dialogo::RET_OK:
@@ -447,12 +435,10 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         //     }                
         //     $partida->evaluarGanador($idpartida, $cnn);
         //     break;
-        // case Dialogo::AVISO_PAGO_JUGADOR:
-        //     $hayGanador = $partida->evaluarGanador($idpartida, $cnn);
-        //     if(!$hayGanador){
-        //         $partida->finalizarTurno($idpartida, $cnn);
-        //     }
-        //     break;
+        case DIAG_TIPO.PAGO_JUGADOR:
+            hayGanador = partida.evaluarGanador();
+            if(!hayGanador) partida.finalizarTurno();
+            break;
         // case Dialogo::AVISO_FERIADO:
         //     $partida->escribirNota($idpartida, "@j$idjugador está tomandose un feriado", $cnn);
         //     $this->avanzarTurno($idpartida,$cnn);
@@ -468,10 +454,6 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
                         enviarError(jugador.wsclient,`No tienes efectivo suficiente`);
                     }
                     partida.finalizarTurno();                 
-                    break;
-                case DIAG_RSP.WAIT:
-                    //$partida->esperarTurno($idpartida, $cnn, false);
-                    enviarError(jugador.wsclient,`pendiente implementar WAIT COMPRA`);
                     break;
                 case DIAG_RSP.CANCEL:
                     partida.finalizarTurno();
