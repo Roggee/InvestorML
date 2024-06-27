@@ -315,8 +315,7 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 partida = ja.partida;
-                const ok = ja.terminarTurno();
-                if(ok) partida.estado = PE.INICIO_TURNO;
+                partida.avanzarTurno();
                 partida.transmitir();
                 break;
             case "closeDialog":
@@ -396,7 +395,13 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             deudor.declararBancaRota(idacreedores,deuda);
             // $partida->escribirNota($idpartida, "@j$jugador->id se ha declarado en banca rota", $cnn);
             hayGanador = partida.evaluarGanador();
-            if(!hayGanador) partida.finalizarTurno();
+            if(!hayGanador){
+                //Avanzar turno hasta que el siguiente No esté descansando
+                let jSiguienteActivo;
+                while(!jSiguienteActivo){
+                    jSiguienteActivo = partida.avanzarTurno();
+                }
+            }
             break;
         // case Dialogo::PAGAR_DEUDA:
         //     switch($rc){
@@ -423,17 +428,6 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         //             $codError= 130;
         //             throw new Exception("dialogo return code $rc no permitida");
         //     }
-        //     break;
-        // case Dialogo::AVISO_SI_BANCAROTA:
-        //     $variable = new Variables();
-        //     $jugadorBackup = $variable->tomar($idpartida, "jugadorBackup", $cnn);
-        //     if($jugadorBackup){ //si hay un backup significa que el turno no es del jugador actual real. Se debe devolver el turno
-        //         $partida->setJugadorActual($idpartida,$jugadorBackup,$cnn);
-        //         $partida->finalizarTurno($idpartida, $cnn);
-        //     }else{//es el turno de jugador en banca rota.
-        //         $this->avanzarTurno($idpartida,$cnn);
-        //     }                
-        //     $partida->evaluarGanador($idpartida, $cnn);
         //     break;
         case DIAG_TIPO.PAGO_JUGADOR:
             hayGanador = partida.evaluarGanador();
