@@ -266,7 +266,21 @@ class Partida {
           const jGanador = restantes[0];
           return jGanador;
       }
-    }        
+    }
+    /**
+     * Finaliza el turno actual. Define el jugador siguiente. Verifica si hay turnos de descanso. Inicia el siguiente turno.
+     * Devuelve el siguiente jugador si este esta descansando.
+     */
+    avanzarTurno(){
+      const jEnDescanso = this.jugadorActual.terminarTurno();
+      if(!jEnDescanso) {
+        this.estado = PE.INICIO_TURNO;
+      }
+      else{        
+        console.log(`El jugador ${jEnDescanso.nombre} está descansando`);
+        return jEnDescanso;
+      }
+    }            
     /**
      * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
      */
