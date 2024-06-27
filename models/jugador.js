@@ -186,19 +186,22 @@ class Jugador{
     return ruta;
   }
   /**
-   * Devuelve FALSE si el siguiente jugador debe descansar en los demas casos de vuelve TRUE.
+   * Si el siguiente jugador está descansando entonces devuelve está instancia. Si no devuelve UNDEFINED
    */
-  terminarTurno() {    
+  terminarTurno() {
     //Limpiar acción de FUSIÓN no finalizada
     //$variable->tomar($idpartida, "fusionT0", $cnn);
     this.partida.tablero.limpiar();
-
     //calcular siguiente jugador y asignar animación de ficha correspondiente
     let jActual = this.partida.getJugadorSiguiente(this.orden);
     this.partida.jugadorActual = jActual;
     this.reposarFicha();
-    jActual.activarFicha();
-    
+    jActual.activarFicha();    
+    //limpiar varialbes de turno
+    this.partida.tablero.limpiar();
+    this.partida.d1Ix=undefined;
+    this.partida.d2Ix=undefined;
+    this.partida.dVal=undefined;
     //validar jugadores con turnos de descanso
     if(jActual.turnosDescanso>=1){
       console.log("pendiente implementar cuando hay turnos descansando");
@@ -206,15 +209,9 @@ class Jugador{
         // $msj = "@j$jActual->id descansará 1 turno mas...";
         // $dialogo = new Dialogo();
         // $dialogo->abrir($idpartida, Dialogo::AVISO_DESCANSO, $msj, $cnn);
-        return false;
+      return jActual;
     }else{
-      this.partida.tablero.limpiar();
       this.partida.tablero.permitirCambiarCarril(jActual.posicion);
-      this.partida.d1Ix=undefined;
-      this.partida.d2Ix=undefined;
-      this.partida.dVal=undefined;
-      //this.partida.btnAccion=Partida.BOTON_ACCION_LANZAR;
-      return true;
     }
   }
   activarFicha(){
@@ -342,7 +339,6 @@ class Jugador{
     return false;
   }
   declararBancaRota(idsAcreedores,deudaTotal){
-    //$formato = new Formato();
     let recaudado = this.efectivo;
     //acumula venta de titulos
     this.titulos.forEach( t => {
