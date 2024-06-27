@@ -66,12 +66,14 @@ class Tablero{
     procesarCasilla(jugador,ruta){
         const idcasilla = jugador.posicion;
         const casilla = this.casillerosDef.items[idcasilla];
+        let titulo;
+        let dialogo
         switch(casilla.tipo){
             case CA_TIPO.TITULO_INVR:
-                const titulo = this.titulos.find( t => {return t.id == idcasilla});
+                titulo = this.titulos.find( t => {return t.id == idcasilla});
                 //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
                 //Para un titulo de inversión sólo existe un poseedor
-                const dialogo = new Dialogo(jugador.partida);
+                dialogo = new Dialogo(jugador.partida);
                 if(titulo.poseedores.length == 0 || (titulo.poseedores[0] == jugador.id && titulo.cantDisponible > 0)){
                     //activar ventana de compra de título.
                     dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,casilla);
@@ -91,21 +93,21 @@ class Tablero{
                 }
                 break;
             case CA_TIPO.TITULO_PROF:
-                // $titulo = new Titulo();
-                // $titulo->load($idpartida, $idcasilla, $cnn);                
-                // $tieneProfesion = $jugador->getCantidadTitulos($jugador->id, $idcasilla, $cnn)>0;
-                // if(!$tieneProfesion){
-                //     if($titulo->cantDisponible>0){//si hay para vender
-                //         $dialogo = new Dialogo();
-                //         $dialogo->abrir($idpartida, Dialogo::COMPRAR_TITULO, "$idcasilla|$jugador->id", $cnn);
-                //     }else {
-                //         $partida->escribirNota($idpartida, "Ya no hay títulos disponibles", $cnn);
-                //         $partida->finalizarTurno($idpartida,$cnn);
-                //     }
-                // }else{
-                //     $partida->escribirNota($idpartida, "@j$jugador->id ya es $casilla->nombre", $cnn);
-                this.partida.finalizarTurno();
-                // }
+                titulo = this.titulos.find( t => {return t.id == idcasilla});
+                const profesion = jugador.tiene(idcasilla);
+                if(!profesion){
+                    //si hay para vender
+                    if(titulo.cantDisponible>0){
+                        dialogo = new Dialogo(jugador.partida);
+                        dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,casilla);
+                    }else {
+                        //$partida->escribirNota($idpartida, "Ya no hay títulos disponibles", $cnn);
+                        this.partida.finalizarTurno();
+                    }
+                }else{
+                    //$partida->escribirNota($idpartida, "@j$jugador->id ya es $casilla->nombre", $cnn);
+                    this.partida.finalizarTurno();
+                }
                 break;
             case CA_TIPO.COMODIN:
                 this.partida.finalizarTurno();
