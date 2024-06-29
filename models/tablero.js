@@ -67,7 +67,7 @@ class Tablero{
         const idcasilla = jugador.posicion;
         const casilla = this.casillerosDef.items[idcasilla];
         let titulo;
-        let dialogo
+        let dialogo;
         switch(casilla.tipo){
             case CA_TIPO.TITULO_INVR:
                 titulo = this.titulos.find( t => {return t.id == idcasilla});
@@ -84,8 +84,7 @@ class Tablero{
                         // $partida->escribirNota($idpartida, $resultado, $cnn);
                     }else{ //no se pudo pagar la deuda. Insolvente
                         const deuda = jugador.calcularPago(titulo.poseedores[0],casilla);
-                        dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{texto: `@j${jugador.id} tiene una deuda superior a sus fondos en efectivo ¿Desea declararse en BANCA ROTA?`,
-                                                      iddeudor:jugador.id, idacreedores:titulo.poseedores, deuda: deuda});
+                        dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:titulo.poseedores, deuda: deuda});
                     }
                 }else{
                 //     $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
@@ -110,10 +109,8 @@ class Tablero{
                 }
                 break;
             case CA_TIPO.COMODIN:
-                this.partida.finalizarTurno();
-                // $dialogo = new Dialogo();
-                // $dialogo->abrir($idpartida, Dialogo::COMODIN, "$casilla->id", $cnn);
-                // $variable = new Variables();
+                dialogo = new Dialogo(jugador.partida);
+                dialogo.abrir(DIAG_TIPO.COMODIN,casilla);
                 // //vuelve a evaluar casilla luego de un CONTINUAR?
                 // if($variable->tomar($idpartida, "deuda", $cnn)){
                 //     //se eliminan las variables de deuda porque se volvera a evaluar el estado y de ser necesario se vuelven a crear.
