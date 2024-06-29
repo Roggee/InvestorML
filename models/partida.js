@@ -1,7 +1,7 @@
 const Jugador = require("./jugador");
 const Tablero = require("./tablero");
 const Rutas = require("./rutas");
-const {PE,TABLA_DADOS,DIAG_TIPO} = require("./valores");
+const {PE,TABLA_DADOS,DIAG_TIPO,CA} = require("./valores");
 const Dialogo = require("./dialogo");
 
 class Partida {
@@ -186,11 +186,7 @@ class Partida {
       }
       //si solo hay un camino 
       if(rutas.getCantidadRutas()==1){
-        this.estado = PE.CAMINANDO;
-        this.transmitir();
-        setTimeout(() => {          
-          this.jugadorActual.avanzarCaminata(ruta1);
-        }, 500);
+        this.iniciarCaminata(ruta1);
       }else{
         setTimeout(() => {
           this.rutas = rutas;
@@ -199,6 +195,16 @@ class Partida {
           this.transmitir();
         }, 500);
       }
+    }
+    /**
+     * cambia el estado de la partida a CAMINANDO y lanza un temporizador para calcular cada paso
+     */
+    iniciarCaminata(ruta){
+      this.estado = PE.CAMINANDO;
+      this.transmitir();
+      setTimeout(() => {          
+        this.jugadorActual.avanzarCaminata(ruta);
+      }, 500);
     }
     /**
      * Cambia el estado de la partida a FINALIZANDO_TURNO y el boton de acción a Terminar
@@ -280,7 +286,38 @@ class Partida {
         console.log(`El jugador ${jEnDescanso.nombre} está descansando`);
         return jEnDescanso;
       }
-    }            
+    }
+    evaluarHospitalYJusticia(jugador,casilla) {
+      const idTitulo = (casilla.id==CA.HOSPITAL?CA.MEDICO:CA.ABOGADO);
+      const titulo = this.tablero.titulos.find( t => {return t.id == idTitulo});
+      if(titulo.poseedores.length==0){
+        jugador.iniciarDescanso();
+        this.avanzarTurno();
+        //$partida->escribirNota($idpartida, "@j$idjugador descansará $jugador->turnosDescansado turnos", $cnn);
+      }else{
+        const idacreedores = [];
+        titulo.poseedores.forEach(profesional => {
+          if(jugador.id != profesional){
+            idacreedores.push(profesional);
+          }
+        });
+        if(idacreedores.length == 0){
+          //$partida->escribirNota($idpartida, "@j$idjugador es el único $titulo->nombre", $cnn);
+          this.finalizarTurno();
+        }else{
+          const acreedores = this.jugadores.filter( j=> { return idacreedores.includes(j.id)});
+          const montopago = this.reglas.pagoAsistenciaProf;
+          const resultado = jugador.pagar(acreedores,montopago);
+          const dialogo = new Dialogo(this);
+          if(resultado){ //se la logrado pagar la deuda
+              dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR, {texto:resultado});
+              //$partida->escribirNota($idpartida, $resultado, $cnn);
+          }else{ //no se pudo pagar la deuda. Insolvente
+              dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:idacreedores, deuda: montopago*idacreedores.length});
+          }                
+        }
+      }        
+    }         
     /**
      * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
      */
