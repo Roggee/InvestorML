@@ -14,7 +14,8 @@ const PE = {
     FUSIONANDO            : "U",
     FRACASANDO            : "A",
     DECIDIENDO_SUERTE     : "T",
-    FIN_CAMINATA_FORZADA  : "M"
+    FIN_CAMINATA_FORZADA  : "M",
+    DESCANSANDO           : "O"
 } 
 //VALORES DADOS
 const TABLA_DADOS = [[0,2,3,1,2,0],[0,2,4,1,3,0]];
