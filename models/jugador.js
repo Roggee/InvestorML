@@ -1,8 +1,9 @@
 const Casillas = require('./casillas');
 const Ruta = require('./ruta');
 const THREE = require('three');
-const {PE,CA,CA_POS_INTERNAS,CA_TIPO} = require("./valores");
+const {PE,CA,CA_POS_INTERNAS,CA_TIPO, DIAG_TIPO} = require("./valores");
 const { stringify } = require('uuid');
+const Dialogo = require('./dialogo');
 
 class Jugador{
   static FICHA_ESTADO_ESPERAR = 1;
@@ -162,10 +163,8 @@ class Jugador{
     if(ruta.getLongitud()!=7){ //NO es feriado
         this.evaluarFinCaminoLaboral(ruta);
     }else{ //es un feriado
-        // $dialogo = new Dialogo();
-        // $dialogo->abrir($idpartida, Dialogo::AVISO_FERIADO, "Es feriado. Puedes descansar...zzZ", $cnn);
-        console.log("pendiente implementar Feriado");
-        this.evaluarFinCaminoLaboral(ruta);
+        const dialogo = new Dialogo(this.partida);
+        dialogo.abrir(DIAG_TIPO.FERIADO, {texto: "Es feriado. Puedes descansar...zzZ"});
     }
   }
   evaluarFinCaminoLaboral(ruta) {
@@ -204,11 +203,11 @@ class Jugador{
     this.partida.dVal=undefined;
     //validar jugadores con turnos de descanso
     if(jActual.turnosDescanso>=1){
-      console.log("pendiente implementar cuando hay turnos descansando");
-        // $jActual->reducirDescanso($jActualId,$cnn);            
-        // $msj = "@j$jActual->id descansará 1 turno mas...";
-        // $dialogo = new Dialogo();
-        // $dialogo->abrir($idpartida, Dialogo::AVISO_DESCANSO, $msj, $cnn);
+      this.partida.estado = PE.DESCANSANDO;
+      jActual.reducirDescanso();
+      const msj = `@j${jActual.id} descansará 1 turno mas...`;
+      const dialogo = new Dialogo(this.partida);
+      dialogo.abrir(DIAG_TIPO.DESCANSO, {texto:msj});
       return jActual;
     }else{
       this.partida.tablero.permitirCambiarCarril(jActual.posicion);
@@ -338,6 +337,15 @@ class Jugador{
     }
     return false;
   }
+  cobrarDinero(valor) {
+    this.efectivo += valor;
+  }
+  iniciarDescanso() {
+    this.turnosDescanso = this.partida.reglas.turnosDescansando;
+  }
+  reducirDescanso() {
+    this.turnosDescanso--;
+  }
   declararBancaRota(idsAcreedores,deudaTotal){
     let recaudado = this.efectivo;
     //acumula venta de titulos
@@ -388,7 +396,7 @@ class Jugador{
       jSiguiente.isHost = true;
       this.partida.host = jSiguiente;
     }
-  }  
+  }
   /**
    * Se espera una lista de nombres con el formato: nombre1, nombre2, nombre3, ...
    */
