@@ -308,6 +308,20 @@ wss.on('connection', function connection(ws, request) {
                     console.log("hay pendientes en notificar");
                 }
                 break;
+            case "takeCredit":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                const creditId = contenido;
+                const res = ja.cobrarPagare(creditId);
+                if(!res) enviarError(ws,`El id ${creditId} indicado no puede cobrarse`);
+                partida.transmitir();
+                //$partida->escribirNota($idpartida, "@j$idjugador ha cobrado un pagaré por @d$pagareValor", $cnn);
+                break;
             case "finishTurn":
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
@@ -359,16 +373,20 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
             jugador.avanzarCaminata(ruta);
             break;
         case PE.COMPRANDO_OF_OP:
-            //$this->evaluarCompraOFOP($idjugador,$idpartida,$idcasilla,$cnn);
+            partida.evaluarCompraOFOP(jugador,idcasilla);
+            partida.transmitir();
             break;
         case PE.FUSIONANDO:
             //$this->evaluarFusionaTitulo($idpartida,$idjugador,$idcasilla,$cnn);
+            partida.transmitir();
             break;
         case PE.FRACASANDO:
             //$this->evaluarDevuelveTitulo($idpartida,$idjugador,$idcasilla,$cnn);
+            partida.transmitir();
             break;
         case PE.DECIDIENDO_SUERTE:
             //$this->evaluarDecidirSuerte($idpartida,$idjugador,$idcasilla,$cnn);
+            partida.transmitir();
             break;
     }    
 }
@@ -444,14 +462,18 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         case DIAG_TIPO.COMPRAR_TITULO:
             switch(rc){
                 case DIAG_RSP.OK:
-                    const idtitulo = jugador.posicion;
-                    if(!jugador.comprarTitulo(idtitulo,false)){
+                    if(!jugador.comprarTitulo(dialogo.contenido.id,jugador.posicion == CA.OFERTA)){
                         enviarError(jugador.wsclient,`No tienes efectivo suficiente`);
                     }
-                    partida.finalizarTurno();                 
+                    partida.finalizarTurno();
                     break;
                 case DIAG_RSP.CANCEL:
-                    partida.finalizarTurno();
+                    if(partida.caso){
+                        const casilla = partida.tablero.casillerosDef.items[partida.caso];
+                        evaluarCierreComodin(casilla, jugador);
+                    }else{
+                        partida.finalizarTurno();
+                    }
                     break;
                 default:
                     enviarError(jugador.wsclient,`dialogo return code ${rc} no permitida`);
@@ -519,7 +541,6 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
 
 function evaluarCierreComodin(casilla, jugador) {
     const partida = jugador.partida;
-    partida.finalizarTurno();
     switch (casilla.id) {
         case CA.VOLVER_TIRAR_DADOS_INI: 
         case CA.VOLVER_TIRAR_DADOS_FIN:
@@ -530,62 +551,80 @@ function evaluarCierreComodin(casilla, jugador) {
             partida.evaluarHospitalYJusticia(jugador,casilla);
             break;
         case CA.AUMENTO_SUELDO:
-            // $jugador->aumentarSueldo($idjugador,$cnn);
-            // $partida->finalizarTurno($idpartida, $cnn);
+            jugador.aumentarSueldo();
+            partida.finalizarTurno();
             // $partida->escribirNota($idpartida,"@j$idjugador ha recibido una nueva Tarjeta de sueldo",$cnn);
             break;
         case CA.OPORTUNIDAD: //Comprar inversiones Celestes
-            // $this->evaluarOportunidadOferta($idpartida,"c",$idCasilla,$cnn);
+            partida.evaluarOportunidadOferta(jugador,"c",casilla);
             break;                        
         case CA.OFERTA: //Comprar inversiones Rosadas Mitad de Precio
-            // $this->evaluarOportunidadOferta($idpartida,"r",$idCasilla,$cnn);
+            partida.evaluarOportunidadOferta(jugador,"r",casilla);
             break;
         case CA.INFLACION : //Pierde la mitad de su dinero efectivo
-            // $devuelto = $jugador->aplicarInflacion($idjugador, $cnn);
+            const devuelto = jugador.aplicarInflacion();
             // $partida->escribirNota($idpartida, "@j$idjugador ha perdido @d$devuelto de su dinero efectivo", $cnn);
-            // $partida->finalizarTurno($idpartida, $cnn);
+            partida.finalizarTurno();
             break;
         case CA.MORATORIA:
-            // $cantidad = $jugador->recuperarPagares($idjugador, $cnn);
-            // if($cantidad>0){
+            const cantidad = jugador.recuperarPagares();
+            if(cantidad>0){
+                console.log(`@j${jugador.id} ha recuperado ${cantidad} de sus pagares`);
             //     $partida->escribirNota($idpartida,"@j$idjugador ha recuperado $cantidad de sus pagares",$cnn);
-            // }else{
+            }else{
+                console.log(`@j${jugador.id} no ha usado ninguno de sus pagares`);
             //     $partida->escribirNota($idpartida,"@j$idjugador no ha usado ninguno de sus pagares",$cnn);
-            // }                
-            // $partida->finalizarTurno($idpartida, $cnn);
+            }
+            partida.finalizarTurno();
             break;
         case CA.DEPRESION:
             // $this->evaluarDepresion($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarDepresion");
+            partida.finalizarTurno();
             break;                 
         case CA.FUSION:
             // $this->evaluarFusion($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarFusion");
+            partida.finalizarTurno();
             break;                        
         case CA.PAGUE_IMPUESTO:
             // $this->evaluarPagoImpuestos($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarPagoImpuestos");
+            partida.finalizarTurno();
             break;
         case CA.GANA_JUICIO:
             // $this->evaluarGanaJuicio($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarGanaJuicio");
+            partida.finalizarTurno();
             break;
         case CA.PAGUE_DIVIDENDOS: // PAGAR 20 A CADA JUGADOR
             // $this->evaluarPagarDividendos($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarPagarDividendos");
+            partida.finalizarTurno();
             break;                        
         case CA.PERDIO_TRABAJO:
             // $jugador->perderTrabajo($idjugador,$cnn);
-            // $partida->finalizarTurno($idpartida, $cnn);
+            partida.finalizarTurno();
             // $partida->escribirNota($idpartida,"@j$idjugador ha perdido todas sus tarjetas de sueldo",$cnn);
             break;                        
         case CA.BONANZAS:
         case CA.DIO_EN_LA_VETA:
-            evaluarRegalosDelBanco(jugador,40,);
+            evaluarRegalosDelBanco(jugador,40);
+            partida.finalizarTurno();
             break;                                                
         case CA.EXCELENTE_COSECHA:
             evaluarRegalosDelBanco(jugador,20);
+            partida.finalizarTurno();
             break;
         case CA.FRACASO:
             // $this->evaluarFracaso($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarFracaso");
+            partida.finalizarTurno();
             break;
         case CA.ESTA_PERDIDO: //ESTA PERDIDO
-            // $this->evaluarEstaPerdido($idpartida,$idjugador,$cnn);    
+            // $this->evaluarEstaPerdido($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarEstaPerdido");
+            partida.finalizarTurno(); 
             break;
         default: //avanzar o retroceder
             const ruta = casilla.rutaEspecial;
