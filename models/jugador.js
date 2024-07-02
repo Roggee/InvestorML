@@ -101,7 +101,6 @@ class Jugador{
     const temp = new THREE.Matrix4();
     const transformacion = new THREE.Matrix4();
     let [ini,fin,iSegmento,iCasillaActual] = [0,0,0,0];
-    //console.log(`avanzarCaminata: ${JSON.stringify(ruta)}`);
     this.fichaEstado = Jugador.FICHA_ESTADO_CAMINAR;
     const intervalID = setInterval(()=> {
         if(iCasillaActual<ruta.getLongitud()){
@@ -168,8 +167,8 @@ class Jugador{
     }
   }
   evaluarFinCaminoLaboral(ruta) {
-    //$this->cobrarSueldo($idpartida,$jugador,$ruta->numMeses,$cnn); //cobrar sueldo por los meses pasados
-    //if($partida->evaluarGanador($idpartida, $cnn)) return;
+    this.cobrarSueldo(ruta.numMeses); //cobrar sueldo por los meses pasados
+    if(this.partida.evaluarGanador()) return;
     this.partida.tablero.procesarCasilla(this,ruta); //procesa CASILLA ACTUAL
   }
   evaluarSeleccionCamino(idcasilla) {
@@ -179,9 +178,7 @@ class Jugador{
     const rutas = this.partida.rutas;
     //eliminar variable
     this.partida.rutas = undefined;
-    //console.log(`las rutas a elegir son ${JSON.stringify(rutas)}`);
-    const ruta = (rutas.principal.getFin()==idcasilla?rutas.principal:rutas.secundario);    
-    //console.log(`la rutas elegida es ${JSON.stringify(ruta)}`);
+    const ruta = (rutas.principal.getFin()==idcasilla?rutas.principal:rutas.secundario);  
     return ruta;
   }
   /**
@@ -346,6 +343,42 @@ class Jugador{
   reducirDescanso() {
     this.turnosDescanso--;
   }
+  cobrarSueldo(numMeses){
+    if(this.numTarjSueldo!=0&&numMeses!=0){
+      const rlgs = this.partida.reglas;        
+      const salario = numMeses*this.numTarjSueldo*rlgs.salario;
+      const msj = `@j${this.id} ha recibido @d${salario} por ${numMeses} mes${numMeses==1?"":"es"} de salario`;
+      this.cobrarDinero(salario);
+      console.log(`cobrarSueldo: ${msj}`);
+      //$partida->escribirNota($jugador->idpartida,$msj, $cnn);
+    }
+  }
+  aumentarSueldo() {
+    this.numTarjSueldo++;
+  }
+  perderTrabajo() {
+    this.numTarjSueldo=0;
+  }
+  aplicarInflacion(){
+    const devuelto = Math.floor(this.efectivo)/2;
+    const saldo = this.efectivo - devuelto;    
+    this.efectivo = saldo;
+    return devuelto;            
+  } 
+  cobrarPagare(creditId) {    
+    if(this.pagares[creditId] == undefined) return false;
+    if(!this.pagares[creditId]) return false;
+    this.pagares[creditId] = false;
+    const creditValue = (creditId+1)*10;
+    this.efectivo += creditValue;
+    this.deuda += creditValue;
+    return true;
+  }
+  recuperarPagares() {
+    const cantidad = this.pagares.filter( p => {return !p}).length;
+    this.pagares.forEach( (_,i) => {this.pagares[i] = true;});
+    return cantidad;
+  }  
   declararBancaRota(idsAcreedores,deudaTotal){
     let recaudado = this.efectivo;
     //acumula venta de titulos
