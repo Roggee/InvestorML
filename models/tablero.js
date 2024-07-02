@@ -76,7 +76,7 @@ class Tablero{
                 dialogo = new Dialogo(jugador.partida);
                 if(titulo.poseedores.length == 0 || (titulo.poseedores[0] == jugador.id && titulo.cantDisponible > 0)){
                     //activar ventana de compra de título.
-                    dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,casilla);
+                    dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,{id:casilla.id,precio:casilla.precio});
                 }else if(titulo.poseedores[0] != jugador.id){ //si alguién mas ya lo compro se le tiene pagar
                     const resultado = jugador.pagarUtilidades(titulo.poseedores[0],casilla);
                     if(resultado){ //se la logrado pagar la deuda
@@ -131,7 +131,7 @@ class Tablero{
                     this.partida.finalizarTurno();
                     // $dialogo = new Dialogo();
                     // $mensaje = "@j$jugador->id ha cobrado sus utilidades por @d$jugador->utilidadAnual";
-                    // $dialogo->abrir($idpartida, Dialogo::AVISO_COBRAR_UTILIDAD, $mensaje, $cnn);                    
+                    // $dialogo->abrir($idpartida, Dialogo::AVISO_COBRAR_UTILIDAD, $mensaje, $cnn);
                 }
                 //el cambio de carril permite continuar en el mismo estado de partida con el mismo jugador luego que la caminata termine.
                 this.permitirCambiarCarril(jugador.posicion);
@@ -204,35 +204,33 @@ class Tablero{
         });
     }
     
-    // /**
-    //  * muestra y devuelve la cantidad de titulos disponibles del jugador actuales.
-    //  * @param $colorRubro el color del título de inversión. r,c,v o la combinación de ellos.
-    //  * @param $excepto el id de un titulo que se debe excluir de la selección (Caso FUSIÓN)
-    //  */
-    // public function mostrarTitulosDisponibles($idpartida, $colorRubro, $excepto, Conexion $cnn) {
-    //     //limmpiar todo
-    //     $color = Tablero::colorPredet;
-    //     $excluido = ($excepto?$excepto:-1);
-    //     $cnn->consultar("UPDATE mls_tablero SET elegible = false,transparencia=0.5,color = '$color' WHERE idpartida = $idpartida");
-    //     //seleccionar titulos disponibles
-    //     $res = $cnn->consultar("SELECT GROUP_CONCAT(mls_tablero.id) ".
-    //                     "FROM mls_tablero INNER JOIN mls_casillas ON mls_tablero.id = mls_casillas.id AND mls_tablero.idpartida = $idpartida ".
-    //                     "                 INNER JOIN mls_partidas ON mls_tablero.idpartida = mls_partidas.id ".
-    //                     "                 LEFT JOIN (SELECT T1.idpartida,T0.* ".
-    //                     "                            FROM mls_jugador_titulos T0 INNER JOIN mls_jugador T1 ON T1.id = T0.idjugador) AS TJ ".
-    //                     "                                                   ON TJ.idtitulo = mls_casillas.id AND TJ.idpartida = mls_tablero.idpartida ".
-    //                     "WHERE mls_casillas.tipo = 2 AND LOCATE(mls_casillas.colorRubro,'$colorRubro') > 0  AND IFNULL(TJ.idpartida,mls_tablero.idpartida) = mls_tablero.idpartida ".
-    //                     "                            AND IFNULL(TJ.idjugador,mls_partidas.jugadorActual) = mls_partidas.jugadorActual AND mls_casillas.maxTitulos-IFNULL(TJ.num,0)>0".
-    //                     "                            AND mls_tablero.id != $excluido ");     
-    //     if($row = mysqli_fetch_row($res)){
-    //         $ids = $row[0];         
-    //         //opacar no selecionables y aclarar seleccionables
-    //         $cnn->consultar("UPDATE mls_tablero SET elegible = true,transparencia = 1.0 ".
-    //                         "WHERE idpartida = $idpartida and id in ($ids)");
-    //         return $cnn->filasAfectadas();
-    //     }
-    //     return 0;
-    // }
+    /**
+     * muestra y devuelve la cantidad de titulos disponibles del jugador actuales.
+     * @param colorRubro el color del título de inversión. r,c,v o la combinación de ellos.
+     * @param excepto el id de un titulo que se debe excluir de la selección (Caso FUSIÓN)
+     */
+    mostrarTitulosDisponibles(jugador,colorRubro, excepto) {
+        const color = Tablero.COLOR_PREDET;
+        const excluido = (excepto?excepto:-1);
+        //limmpiar todo
+        this.casilleros.forEach( c => {c.elegible = false,c.transparencia=0.5,c.color = color});
+        //seleccionar titulos disponibles
+        let cantidad = 0;
+        this.titulos.forEach( t => {
+            const cd = this.casillerosDef.items[t.id];
+            if(cd.tipo!==CA_TIPO.TITULO_INVR) return;
+            if(cd.colorRubro!==colorRubro) return;
+            if(t.poseedores.length > 0 && !t.poseedores.includes(jugador.id)) return;
+            if(t.cantDisponible == 0) return;
+            if(t.id == excluido) return;
+
+            const ct = this.casilleros[t.id];
+            ct.elegible = true;
+            ct.transparencia = 1;
+            cantidad++;
+        });
+        return cantidad;
+    }
     // /**
     //  * @param $todo si es true entonces muestra todos los títulos del jugador, caso contrario sólo muestra los títulos de inversión.
     //  */
