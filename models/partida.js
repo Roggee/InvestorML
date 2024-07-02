@@ -44,7 +44,6 @@ class Partida {
       this.d2Ix=undefined;
       this.dVal=undefined;
       this.jugadorActual=undefined;
-      this.btnAccion = Partida.BOTON_ACCION_LANZAR;
       this.ganador = undefined; //si es está definido entonces hay un ganador
       this.numJugadores = 0;
       this.jugadores = [];
@@ -141,8 +140,6 @@ class Partida {
      * Cambia el estado de la partida a INICIO_TURNO y el boton de acción a Lanzar
      */
     inicializarTurno(){
-      this.btnAccion = Partida.BOTON_ACCION_LANZAR;
-      //this.jugadorActual.fichaEstado = Jugador.FICHA_ESTADO_SALUDO;
       this.jugadorActual.setPosicionInicial();
       this.estado = PE.INICIO_TURNO;
       this.d1Ix = undefined;
@@ -215,7 +212,6 @@ class Partida {
         console.log(`La partida ${this.id} ya se encuentra en estado ${nuevo_estado}`);
         return;
       }
-      //this.btnAccion = PE.BOTON_ACCION_TERMINAR;
       this.estado = nuevo_estado;
       console.log(`La partida ${this.id} a cambiado a ${nuevo_estado}`);
     }
@@ -317,7 +313,28 @@ class Partida {
           }                
         }
       }        
-    }         
+    }
+    evaluarOportunidadOferta(jugador,color,casilla) {
+      const colores = [];
+      colores["c"] = ["CELESTE",DIAG_TIPO.NO_CELESTES];
+      colores["r"] = ["ROSADAS",DIAG_TIPO.NO_ROSADAS];
+      const cantidad = this.tablero.mostrarTitulosDisponibles(jugador, color);
+      if(cantidad!=0){
+          this.caso = casilla.id;
+          this.estado = PE.COMPRANDO_OF_OP;
+      }else{
+          const dialogo = new Dialogo(this);
+          const colorInfo = colores[color];
+          dialogo.abrir(colorInfo[1], {texto:`No hay inversiones ${colorInfo[0]} disponibles`});
+      }
+    }
+    evaluarCompraOFOP(jugador, idtitulo) {
+      const casilla = this.tablero.casillerosDef.items[idtitulo];
+      const precio = casilla.precio/(this.caso!=CA.OPORTUNIDAD?2:1);
+      const dialogo = new Dialogo(this);
+      dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,{id:idtitulo,precio:precio});
+      this.tablero.limpiar();
+    }    
     /**
      * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
      */
