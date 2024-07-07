@@ -49,10 +49,12 @@ class Partida {
       this.jugadores = [];
       this.tablero = undefined;
       this.dialogos = [];
+      this.mensajes = [];
+      this.horaInicio = undefined;
     }
     minify(){
       let strp = JSON.stringify(this,(key,value)=>{
-        if (["wsclient","token","casillerosDef","f1","posInternas"].includes(key)) return undefined;
+        if (["wsclient","token","casillerosDef","f1","posInternas","horaInicio"].includes(key)) return undefined;
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
         if (key=="jugadorActual"||key=="ganador") return (value?value.id:undefined);
@@ -123,6 +125,7 @@ class Partida {
      * Se define el jugador actual
      */
     iniciar(){
+      this.horaInicio = new Date();
       this.jugadorActual = this.jugadores.find( j => j.orden == 0 );
       this.tablero = new Tablero(this);
       this.tablero.updatePosInternasCasilla();
@@ -289,7 +292,7 @@ class Partida {
       if(titulo.poseedores.length==0){
         jugador.iniciarDescanso();
         this.avanzarTurno();
-        //$partida->escribirNota($idpartida, "@j$idjugador descansará $jugador->turnosDescansado turnos", $cnn);
+        partida.escribirNota(`@j${jugador.id} descansará ${jugador.turnosDescanso} turnos`);
       }else{
         const idacreedores = [];
         titulo.poseedores.forEach(profesional => {
@@ -298,7 +301,7 @@ class Partida {
           }
         });
         if(idacreedores.length == 0){
-          //$partida->escribirNota($idpartida, "@j$idjugador es el único $titulo->nombre", $cnn);
+          partida.escribirNota(`@j${jugador.id} es el único ${titulo.nombre}`);
           this.finalizarTurno();
         }else{
           const acreedores = this.jugadores.filter( j=> { return idacreedores.includes(j.id)});
@@ -307,7 +310,7 @@ class Partida {
           const dialogo = new Dialogo(this);
           if(resultado){ //se la logrado pagar la deuda
               dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR, {texto:resultado});
-              //$partida->escribirNota($idpartida, $resultado, $cnn);
+              partida.escribirNota(resultado);
           }else{ //no se pudo pagar la deuda. Insolvente
               dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:idacreedores, deuda: montopago*idacreedores.length});
           }                
@@ -334,7 +337,14 @@ class Partida {
       const dialogo = new Dialogo(this);
       dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,{id:idtitulo,precio:precio});
       this.tablero.limpiar();
-    }    
+    }
+    escribirNota(msj){
+      const ahora = new Date();
+      const diff = new Date(ahora - this.horaInicio);
+      const options = {hour: "2-digit",minute: "2-digit",second: "2-digit",timeZone: 'UTC'};
+      const marca = diff.toLocaleTimeString("en-GB",options);
+      this.mensajes = [`[${marca}] ${msj}`,...this.mensajes];
+    }
     /**
      * Envia estado COMPLETO del juego a todos los jugadores de la partida actual.
      */
