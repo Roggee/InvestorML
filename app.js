@@ -9,6 +9,7 @@ const JugadorFactory = require("./models/jugadorFactory.js");
 const PartidaFactory = require("./models/partidaFactory.js");
 const {PE,DIAG_TIPO,DIAG_RSP,CA} = require("./models/valores");
 const Ruta = require('./models/ruta.js');
+const { setTimeout } = require('timers');
 
 //token secret
 let secret = '1nv3$t0r';
@@ -318,9 +319,12 @@ wss.on('connection', function connection(ws, request) {
                 partida = ja.partida;
                 const creditId = contenido;
                 const res = ja.cobrarPagare(creditId);
-                if(!res) enviarError(ws,`El id ${creditId} indicado no puede cobrarse`);
+                if(!res) {
+                    enviarError(ws,`El id ${creditId} indicado no puede cobrarse`);
+                    return;
+                }
+                partida.escribirNota(`@j${ja.id} ha cobrado un pagaré por @d${(creditId+1)*10}`);
                 partida.transmitir();
-                //$partida->escribirNota($idpartida, "@j$idjugador ha cobrado un pagaré por @d$pagareValor", $cnn);
                 break;
             case "finishTurn":
                 ja = validarJugador(msg,ws);
@@ -355,7 +359,7 @@ wss.on('connection', function connection(ws, request) {
 });
 
 server.listen(port,() => {
-    console.log(`WS escuchando en puerto ${port}`);
+    console.log(`WS escuchando en puerto ${port}`);    
 });
 
 function evaluarSeleccionCasilla(jugador,partida,idcasilla){
@@ -412,7 +416,7 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             const deuda = dialogo.contenido.deuda;
             const deudor = partida.jugadores.find(j=>{return j.id == dialogo.contenido.iddeudor});
             deudor.declararBancaRota(idacreedores,deuda);
-            // $partida->escribirNota($idpartida, "@j$jugador->id se ha declarado en banca rota", $cnn);
+            partida.escribirNota( `@j${jugador.id} se ha declarado en banca rota`);
             hayGanador = partida.evaluarGanador();
             if(!hayGanador){
                 //Avanzar turno hasta que el siguiente No esté descansando
@@ -428,7 +432,7 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         //             $res = $jugador->pagarDeuda($idjugador,$cnn);
         //             if($res){
         //                 $dialogo->abrir($idpartida, Dialogo::AVISO_PAGARES_PAGO, $res, $cnn);
-        //                 $partida->escribirNota($idpartida, $res, $cnn);
+        //                 partida.escribirNota($res);
         //             }else{
         //                 //TODO: enviar mensaje de error que no pudo pagarse la deuda.
         //                 $partida->finalizarTurno($idpartida, $cnn);
@@ -440,7 +444,7 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         //             $partida->setNoGanador($idpartida, $cnn);
         //             $partida->setJugadorActual($idpartida,$jugadorBackup,$cnn);
         //             $jActual = $partida->getJugadorActual($idpartida, $cnn);
-        //             $partida->escribirNota($idpartida, "@j$jActual->id ha decidido no pagar su deuda", $cnn);
+        //             partida.escribirNota(`@j${jActual.id} ha decidido no pagar su deuda`);
         //             $partida->finalizarTurno($idpartida, $cnn);
         //             break;
         //         default:
@@ -453,7 +457,7 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             if(!hayGanador) partida.finalizarTurno();
             break;
         case DIAG_TIPO.FERIADO:
-            //$partida->escribirNota($idpartida, "@j$idjugador está tomandose un feriado", $cnn);
+            partida.escribirNota(`@j${jugador.id} está tomandose un feriado`);
             partida.avanzarTurno();
             break;
         // case Dialogo::AVISO_INICIO:
@@ -477,21 +481,19 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
                     break;
                 default:
                     enviarError(jugador.wsclient,`dialogo return code ${rc} no permitida`);
-
             }
             break;
-        // case Dialogo::AVISO_COBRAR_UTILIDAD:
-        //     $idjugador = $partida->getJugadorActual($idpartida, $cnn);
-        //     $jugador->cobrarUtilidadAnual($idjugador, $cnn);
-        //     $jugador->loadById($idjugador, $cnn);
-        //     $partida->escribirNota($idpartida, "@j$idjugador ha cobrado sus utilidades por @d$jugador->utilidadAnual", $cnn);
-        //     $hayGanador = $partida->evaluarGanador($idpartida, $cnn);
-        //     if(!$hayGanador){
-        //         $partida->finalizarTurno($idpartida, $cnn);
-        //     }
-        //     break;
+        case DIAG_TIPO.COBRAR_UTILIDAD:
+            jugador.cobrarUtilidadAnual();
+            partida.escribirNota(`@j${jugador.id} ha cobrado sus utilidades por @d${jugador.utilidadAnual}`);
+            hayGanador = partida.evaluarGanador();
+            if(!hayGanador){
+                partida.tablero.permitirCambiarCarril(jugador.posicion);
+                partida.finalizarTurno();
+            }
+            break;
         case DIAG_TIPO.DESCANSO:
-            //$partida->escribirNota($idpartida, "@j$idjugador descansará 1 turno mas", $cnn);
+            partida.escribirNota(`@j${jugador.id} descansará 1 turno mas`);
             partida.avanzarTurno();
             break;
         // case Dialogo::DEVOLVER_TITULOS:
@@ -503,7 +505,7 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         //     }
         //     $titulosStr = $this->decorarTitulos($frmTitulos->grpDestino,$cnn);
         //     $mensaje = "@j$idjugador ha pedido $titulosStr";
-        //     $partida->escribirNota($idpartida, $mensaje, $cnn);
+        //     partida.escribirNota($mensaje);
         //     $partida->finalizarTurno($idpartida, $cnn);
         //     break;
         // case Dialogo::VENDER_TITULOS:
@@ -518,7 +520,7 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         //             $jugador->cobrarDinero($idjugador, $frmTitulos->recaudado, $cnn);
         //             $titulosStr = $this->decorarTitulos($frmTitulos->grpDestino,$cnn);
         //             $mensaje = "@j$idjugador ha recibido @d$frmTitulos->recaudado por sus $titulosStr";
-        //             $partida->escribirNota($idpartida, $mensaje, $cnn);
+        //             partida.escribirNota($mensaje);
         //             break;
         //         case Dialogo::RET_CANCEL:
         //             //ninguna accion
@@ -533,9 +535,9 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
         // case Dialogo::AVISO_VENDER_SIN_TITULOS:
         //     //no hacer nada.
         //     break;
-        // default:
-        //     $partida->finalizarTurno($idpartida, $cnn);
-        //     break;
+        default:
+            partida.finalizarTurno();
+            break;
     }
 }
 
@@ -553,7 +555,7 @@ function evaluarCierreComodin(casilla, jugador) {
         case CA.AUMENTO_SUELDO:
             jugador.aumentarSueldo();
             partida.finalizarTurno();
-            // $partida->escribirNota($idpartida,"@j$idjugador ha recibido una nueva Tarjeta de sueldo",$cnn);
+            partida.escribirNota(`@j${jugador.id} ha recibido una nueva Tarjeta de sueldo`);
             break;
         case CA.OPORTUNIDAD: //Comprar inversiones Celestes
             partida.evaluarOportunidadOferta(jugador,"c",casilla);
@@ -563,17 +565,15 @@ function evaluarCierreComodin(casilla, jugador) {
             break;
         case CA.INFLACION : //Pierde la mitad de su dinero efectivo
             const devuelto = jugador.aplicarInflacion();
-            // $partida->escribirNota($idpartida, "@j$idjugador ha perdido @d$devuelto de su dinero efectivo", $cnn);
+            partida.escribirNota(`@j${jugador.id} ha perdido @d$devuelto de su dinero efectivo`);
             partida.finalizarTurno();
             break;
         case CA.MORATORIA:
             const cantidad = jugador.recuperarPagares();
             if(cantidad>0){
-                console.log(`@j${jugador.id} ha recuperado ${cantidad} de sus pagares`);
-            //     $partida->escribirNota($idpartida,"@j$idjugador ha recuperado $cantidad de sus pagares",$cnn);
+                partida.escribirNota(`@j${jugador.id} ha recuperado $cantidad de sus pagares`);
             }else{
-                console.log(`@j${jugador.id} no ha usado ninguno de sus pagares`);
-            //     $partida->escribirNota($idpartida,"@j$idjugador no ha usado ninguno de sus pagares",$cnn);
+                partida.escribirNota(`@j${jugador.id} no ha usado ninguno de sus pagares`);
             }
             partida.finalizarTurno();
             break;
@@ -605,7 +605,7 @@ function evaluarCierreComodin(casilla, jugador) {
         case CA.PERDIO_TRABAJO:
             // $jugador->perderTrabajo($idjugador,$cnn);
             partida.finalizarTurno();
-            // $partida->escribirNota($idpartida,"@j$idjugador ha perdido todas sus tarjetas de sueldo",$cnn);
+            partida.escribirNota(`@j${jugador.id} ha perdido todas sus tarjetas de sueldo`);
             break;                        
         case CA.BONANZAS:
         case CA.DIO_EN_LA_VETA:
@@ -640,7 +640,7 @@ function evaluarCierreComodin(casilla, jugador) {
 function evaluarRegalosDelBanco(jugador, monto) {
     const partida = jugador.partida;       
     jugador.cobrarDinero(monto);
-    //$partida->escribirNota($idpartida,"@j$idjugador ha cobrado @d$monto al Banco",$cnn);
+    partida.escribirNota(`@j${jugador.id} ha cobrado @d${monto} al Banco`);
     if(!partida.evaluarGanador()){
         partida.finalizarTurno();
     }
@@ -674,6 +674,10 @@ function reconectarUsuario(token,ws){
             return;
         }
         let j = jugFact.getByToken(token);
+        if(!j){
+            enviarError(ws,"El token no es válido. Recargue la página");
+            return;
+        }
         if(j.wsclient) j.wsclient.close();
         j.wsclient = ws;
         let rsp = {type:"loggedin",content:j.minify()};
