@@ -239,13 +239,13 @@ class Jugador{
     this.partida.tablero.updatePosInternasCasilla();
   }
   comprarTitulo(idtitulo,mitadPrecio){
-    const titulo = this.partida.tablero.casillerosDef.items.find( c => {return c.id == idtitulo});
+    const titulo = this.partida.tablero.casillerosDef.items[idtitulo];
     const precio = titulo.precio/(mitadPrecio?2:1);
     if(precio <= this.efectivo){
         this.efectivo -= precio;
         this.adquirirTitulo(idtitulo);
         this.partida.tablero.entregarTitulo(this,idtitulo);
-        //$partida->escribirNota($idpartida, "@j$this->id ha comprado $titulo->nombre por @d$precio", $cnn);
+        this.partida.escribirNota(`@j${this.id} ha comprado ${titulo.nombre} por @d${precio}`);
         return true;
     }
     return false;    
@@ -278,8 +278,8 @@ class Jugador{
     this.utilidadAnual = 0;
     let cant = 0;
     this.titulos.forEach( t => {
-      if(t.tipo == CA_TIPO.TITULO_INVR){
-        const tInfo = this.partida.tablero.casillerosDef.items[t.id];
+      const tInfo = this.partida.tablero.casillerosDef.items[t.id];
+      if(tInfo.tipo == CA_TIPO.TITULO_INVR){        
         const monto = tInfo.utilidades[t.num-1];
         this.utilidadAnual+=monto;
         cant+=t.num;
@@ -337,6 +337,9 @@ class Jugador{
   cobrarDinero(valor) {
     this.efectivo += valor;
   }
+  cobrarUtilidadAnual() {
+    this.efectivo += this.utilidadAnual;
+  }  
   iniciarDescanso() {
     this.turnosDescanso = this.partida.reglas.turnosDescansando;
   }
@@ -350,7 +353,7 @@ class Jugador{
       const msj = `@j${this.id} ha recibido @d${salario} por ${numMeses} mes${numMeses==1?"":"es"} de salario`;
       this.cobrarDinero(salario);
       console.log(`cobrarSueldo: ${msj}`);
-      //$partida->escribirNota($jugador->idpartida,$msj, $cnn);
+      this.partida.escribirNota(msj);
     }
   }
   aumentarSueldo() {
@@ -409,8 +412,7 @@ class Jugador{
       });
       nombres = this.decorarNombres(nombres);
       console.log(`declararBancaRota: el banco se quedó con ${recaudado*1000}`);
-      console.log(`@j${this.id} trató de saldar su deuda con ${nombres}`);
-      //$partida->escribirNota($jugador->idpartida, "@j$jugador->id trató de saldar su deuda con $nombres", $cnn);
+      this.partida.escribirNota(`@j${this.id} trató de saldar su deuda con ${nombres}`);
     }
     
     //Los pagarés restantes no es dinero propio por lo tanto no se debe recaudar.
