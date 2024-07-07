@@ -73,7 +73,7 @@ class Tablero{
                 titulo = this.titulos.find( t => {return t.id == idcasilla});
                 //Sólo se puede comprar si no tiene poseedores o si el jugador actual lo es y aún hay títulos disponibles
                 //Para un titulo de inversión sólo existe un poseedor
-                dialogo = new Dialogo(jugador.partida);
+                dialogo = new Dialogo(this.partida);
                 if(titulo.poseedores.length == 0 || (titulo.poseedores[0] == jugador.id && titulo.cantDisponible > 0)){
                     //activar ventana de compra de título.
                     dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,{id:casilla.id,precio:casilla.precio});
@@ -81,13 +81,13 @@ class Tablero{
                     const resultado = jugador.pagarUtilidades(titulo.poseedores[0],casilla);
                     if(resultado){ //se la logrado pagar la deuda
                         dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR,{texto: resultado});
-                        // $partida->escribirNota($idpartida, $resultado, $cnn);
+                        this.partida.escribirNota(resultado);
                     }else{ //no se pudo pagar la deuda. Insolvente
                         const deuda = jugador.calcularPago(titulo.poseedores[0],casilla);
                         dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:titulo.poseedores, deuda: deuda});
                     }
                 }else{
-                //     $partida->escribirNota($idpartida, "@j$jugador->id posee todos los títulos de esta inversión", $cnn);
+                    this.partida.escribirNota(`@j${jugador.id} posee todos los títulos de esta inversión`);
                     this.partida.finalizarTurno();
                 }
                 break;
@@ -97,19 +97,19 @@ class Tablero{
                 if(!profesion){
                     //si hay para vender
                     if(titulo.cantDisponible>0){
-                        dialogo = new Dialogo(jugador.partida);
+                        dialogo = new Dialogo(this.partida);
                         dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,casilla);
                     }else {
-                        //$partida->escribirNota($idpartida, "Ya no hay títulos disponibles", $cnn);
+                        this.partida.escribirNota("Ya no hay títulos disponibles");
                         this.partida.finalizarTurno();
                     }
                 }else{
-                    //$partida->escribirNota($idpartida, "@j$jugador->id ya es $casilla->nombre", $cnn);
+                    this.partida.escribirNota(`@j${jugador.id} ya es ${casilla.nombre}`);
                     this.partida.finalizarTurno();
                 }
                 break;
             case CA_TIPO.COMODIN:
-                dialogo = new Dialogo(jugador.partida);
+                dialogo = new Dialogo(this.partida);
                 dialogo.abrir(DIAG_TIPO.COMODIN,casilla);
                 // //vuelve a evaluar casilla luego de un CONTINUAR?
                 // if($variable->tomar($idpartida, "deuda", $cnn)){
@@ -125,23 +125,21 @@ class Tablero{
                 console.log("anio nuevo, festividades, meses");
                 const reglas = this.partida.reglas;
                 //validar si se debe cobrar utilidad
-                if(ruta.esCambioCarrilAnioNuevo()&&(this.casillerosDef.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
+                if(!ruta.esCambioCarrilAnioNuevo()&&(this.casillerosDef.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
                    (this.partida.dVal!=0||(this.partida.dVal==0 && reglas.repetirAnioNuevo))){
-                    console.log("pendiente implementar cobrar utilidad");
-                    this.partida.finalizarTurno();
-                    // $dialogo = new Dialogo();
-                    // $mensaje = "@j$jugador->id ha cobrado sus utilidades por @d$jugador->utilidadAnual";
-                    // $dialogo->abrir($idpartida, Dialogo::AVISO_COBRAR_UTILIDAD, $mensaje, $cnn);
-                }
-                //el cambio de carril permite continuar en el mismo estado de partida con el mismo jugador luego que la caminata termine.
-                this.permitirCambiarCarril(jugador.posicion);
-                if(ruta.esCambioCarril() && this.partida.estadoInicial == PE.INICIO_TURNO){
-                    this.partida.estadoInicial = "";
-                    this.partida.inicializarTurno();
-                    console.log("turno inicializado");
+                    dialogo = new Dialogo(this.partida);
+                    const mensaje = `@j${jugador.id} tiene utilidades por cobrar de @d${jugador.utilidadAnual}`;
+                    dialogo.abrir(DIAG_TIPO.COBRAR_UTILIDAD, {texto: mensaje});
                 }else{
-                    //cambiar nombre a PermitirFinalizarTurno
-                    this.partida.finalizarTurno();
+                    if(ruta.esCambioCarril() && this.partida.estadoInicial == PE.INICIO_TURNO){
+                        this.permitirCambiarCarril(jugador.posicion);
+                        this.partida.estadoInicial = "";
+                        this.partida.inicializarTurno();
+                        console.log("turno inicializado");
+                    }else{
+                        //cambiar nombre a PermitirFinalizarTurno
+                        this.partida.finalizarTurno();
+                    }
                 }
         }        
     }
