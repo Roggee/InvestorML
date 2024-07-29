@@ -127,6 +127,8 @@ wss.on('connection', function connection(ws, request) {
                 if(!ja) return;
                 partida = ja.partida;
                 partida.eliminarJugador(ja);
+                partida.escribirNota(`${ja.nombre} ha salido de la partida`);
+                partida.evaluarGanador();
                 partida.jugadores.forEach( j => {
                     let rsp = {type:"game",content:{partida:partida.minify(),msj:`${ja.nombre} ha salido de la partida`}};
                     j.wsclient.send(JSON.stringify(rsp));
@@ -239,7 +241,7 @@ wss.on('connection', function connection(ws, request) {
                     setTimeout(() => {
                         partida.iniciar();
                         //////////////////////////////////////////////////Test///////////////////////////////////////////
-                        // const titulosTest = [50,2,33,33,58,67,69,3,3,6,8,12,14,22,24,26,30,34,34,37,38,41,46,46,46,54,59,63,65];
+                        // const titulosTest = [50,2,33,33,58,67];//,69,3,3,6,8,12,14,22,24,26,30,34,34,37,38,41,46,46,46,54,59,63,65];
                         // partida.jugadorActual.efectivo = 500;
                         // titulosTest.forEach(idtitulo => {
                         //     partida.jugadorActual.comprarTitulo(idtitulo,true);
