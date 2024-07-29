@@ -292,7 +292,7 @@ class Partida {
       if(titulo.poseedores.length==0){
         jugador.iniciarDescanso();
         this.avanzarTurno();
-        partida.escribirNota(`@j${jugador.id} descansará ${jugador.turnosDescanso} turnos`);
+        this.escribirNota(`@j${jugador.id} descansará ${jugador.turnosDescanso} turnos`);
       }else{
         const idacreedores = [];
         titulo.poseedores.forEach(profesional => {
@@ -301,7 +301,7 @@ class Partida {
           }
         });
         if(idacreedores.length == 0){
-          partida.escribirNota(`@j${jugador.id} es el único ${titulo.nombre}`);
+          this.escribirNota(`@j${jugador.id} es el único ${titulo.nombre}`);
           this.finalizarTurno();
         }else{
           const acreedores = this.jugadores.filter( j=> { return idacreedores.includes(j.id)});
@@ -310,7 +310,7 @@ class Partida {
           const dialogo = new Dialogo(this);
           if(resultado){ //se la logrado pagar la deuda
               dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR, {texto:resultado});
-              partida.escribirNota(resultado);
+              this.escribirNota(resultado);
           }else{ //no se pudo pagar la deuda. Insolvente
               dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:idacreedores, deuda: montopago*idacreedores.length});
           }                
@@ -338,6 +338,67 @@ class Partida {
       dialogo.abrir(DIAG_TIPO.COMPRAR_TITULO,{id:idtitulo,precio:precio});
       this.tablero.limpiar();
     }
+    evaluarDepresion(jugador) {
+      const numTitulos = jugador.getNumTitulos();
+      const dev = Math.floor(numTitulos/2);
+      if(dev>0) {
+          const contenido = {pendientes: dev,grpOrigen: jugador.titulos,grpDestino:[],nf:Math.ceil(jugador.titulos.length/6)};
+          const dialogo = new Dialogo(this);
+          dialogo.abrir(DIAG_TIPO.DEVOLVER_TITULOS,contenido);
+      }else{
+          this.escribirNota(`@j${jugador.id} no tiene títulos para devolver`);
+          this.finalizarTurno();
+      }  
+    }
+    entregarTitulo(idg,tituloId){
+      const dialogo = this.dialogos.find( d=>{return d.id==idg});
+      if(!dialogo){
+        return `El dialogo ${idg} no existe`;
+      }
+      if(dialogo.contenido.pendientes==0){
+        return `No hay titulos pendientes por entregar`;
+      }
+      //Descontar del origen
+      const tituloInfoOrg = dialogo.contenido.grpOrigen.find( t=>{return t.id== tituloId});
+      if(!tituloInfoOrg){
+        return `El jugador no tiene el título ${tituloId}`;
+      }
+      tituloInfoOrg.num--;
+      if(tituloInfoOrg.num==0){
+          dialogo.contenido.grpOrigen = dialogo.contenido.grpOrigen.filter( t=>{return t.id != tituloId})
+      }
+      //Agregar al destino
+      const tituloInfoDes = dialogo.contenido.grpDestino.find( t=>{return t.id== tituloId});
+      if(tituloInfoDes){
+          tituloInfoDes.num++;
+      }else{
+          dialogo.contenido.grpDestino.push({"id":tituloId,"num":1});
+      }
+      dialogo.contenido.pendientes--;
+    }
+    recuperarTitulo(idg,tituloId){
+      const dialogo = this.dialogos.find( d=>{return d.id==idg});
+      if(!dialogo){
+        return `El dialogo ${idg} no existe`;
+      }   
+      //Descontar del destino
+      const tituloInfoDes = dialogo.contenido.grpDestino.find( t=>{return t.id== tituloId});
+      if(!tituloInfoDes){
+        return `El jugador no ha entregado el título ${tituloId}`;
+      }      
+      tituloInfoDes.num--;
+      if(tituloInfoDes.num==0){
+          dialogo.contenido.grpDestino = dialogo.contenido.grpDestino.filter( t=>{return t.id != tituloId})
+      }
+      //Agregar al origen
+      const tituloInfoOrg = dialogo.contenido.grpOrigen.find( t=>{return t.id== tituloId});
+      if(tituloInfoOrg){
+        tituloInfoOrg.num++;
+      }else{
+          dialogo.contenido.grpOrigen.push({"id":tituloId,"num":1});
+      }
+      dialogo.contenido.pendientes++;
+    }    
     escribirNota(msj){
       const ahora = new Date();
       const diff = new Date(ahora - this.horaInicio);
