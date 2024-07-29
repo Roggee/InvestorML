@@ -169,7 +169,7 @@ class Jugador{
   evaluarFinCaminoLaboral(ruta) {
     this.cobrarSueldo(ruta.numMeses); //cobrar sueldo por los meses pasados
     if(this.partida.evaluarGanador()) return;
-    this.partida.tablero.procesarCasilla(this,ruta); //procesa CASILLA ACTUAL
+    this.partida.tablero.procesarCasilla(this,ruta.esCambioCarrilAnioNuevo(),ruta.esCambioCarrilFestividades()); //procesa CASILLA ACTUAL
   }
   evaluarSeleccionCamino(idcasilla) {
     //this.partida.tablero.limpiar();
@@ -238,6 +238,22 @@ class Jugador{
     this.posRelativa = iLibre;
     this.partida.tablero.updatePosInternasCasilla();
   }
+    /**
+     * @tipo uno de CA_TIPO.TITULO_INVR,CA_TIPO.TITULO_PROF
+     */
+  getNumTitulos(tipo){
+    console.log(`getNumTitulos: tipo=${tipo}`);
+    let numTitulos = 0;
+    this.titulos.forEach( t => {
+      const tInfo = this.partida.tablero.casillerosDef.items[t.id];
+      if(tipo==undefined||tInfo.tipo == tipo){
+        numTitulos+=t.num;
+        console.log(`getNumTitulos: sumando=${t.num}`);
+      }
+    });
+    console.log(`getNumTitulos: total=${numTitulos}`);
+    return numTitulos;
+  }  
   comprarTitulo(idtitulo,mitadPrecio){
     const titulo = this.partida.tablero.casillerosDef.items[idtitulo];
     const precio = titulo.precio/(mitadPrecio?2:1);
@@ -258,6 +274,27 @@ class Jugador{
       this.titulos.push({id:idtitulo,num:1});
     }
     this.calcularUtilidadAnual();
+  }
+  devolverTitulo(idtitulo,num){
+    const titulo = this.titulos.find(t => {return t.id==idtitulo});
+    if(!titulo) {
+      console.log(`El jugador no tiene el título indicado(${idtitulo})`);
+      return;
+    }
+    if(titulo.num-num<0){
+      console.log(`El jugador solo tiene ${titulo.num} del título indicado(${idtitulo})`);
+      return;
+    }
+    titulo.num-=num;
+    const tInfo = this.partida.tablero.titulos.find(t => {return t.id == titulo.id});
+    tInfo.cantDisponible += num;
+    if(titulo.num==0){
+      //eliminar poseedor de titulo
+      tInfo.poseedores = tInfo.poseedores.filter( p => {return p.id!=this.id});
+      //eliminar titulo de la lista de titulos.
+      this.titulos = this.titulos.filter( t => {return t.id!=titulo.id});
+    }
+    this.calcularUtilidadAnual();   
   }
 
   devolverTitulos(){
@@ -301,6 +338,7 @@ class Jugador{
     //pagar obligaciones
     return this.pagar([acreedor],utilidades);
   }
+
   calcularPago(idAcreedor,titInfo) {
     const acreedor = this.partida.jugadores.find( j=> {return j.id == idAcreedor});
     const jt = acreedor.tiene(titInfo.id);
@@ -312,7 +350,8 @@ class Jugador{
     //sumar economista
     utilidades += jt.num*(acreedor.tiene(CA.ECONOMISTA)?5:0);
     return utilidades;
-  }  
+  }
+
   pagar(acreedores,pago){
     if(acreedores.length==0){ //pagar al banco
         if(pago<=this.efectivo){
@@ -346,6 +385,7 @@ class Jugador{
   reducirDescanso() {
     this.turnosDescanso--;
   }
+
   cobrarSueldo(numMeses){
     if(this.numTarjSueldo!=0&&numMeses!=0){
       const rlgs = this.partida.reglas;        
@@ -356,6 +396,7 @@ class Jugador{
       this.partida.escribirNota(msj);
     }
   }
+  
   aumentarSueldo() {
     this.numTarjSueldo++;
   }
