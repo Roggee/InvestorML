@@ -63,7 +63,7 @@ class Tablero{
         casillaIDs.forEach( c => this.casilleros[c].elegible = elegible);
     }
 
-    procesarCasilla(jugador,ruta){
+    procesarCasilla(jugador,esCambioAN,esCambioFTV){
         const idcasilla = jugador.posicion;
         const casilla = this.casillerosDef.items[idcasilla];
         let titulo;
@@ -125,14 +125,14 @@ class Tablero{
                 console.log("anio nuevo, festividades, meses");
                 const reglas = this.partida.reglas;
                 //validar si se debe cobrar utilidad
-                if(!ruta.esCambioCarrilAnioNuevo()&&(this.casillerosDef.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
+                if(!esCambioAN&&(this.casillerosDef.esAnioNuevo(idcasilla)&&jugador.utilidadAnual!=0) && 
                    (this.partida.dVal!=0||(this.partida.dVal==0 && reglas.repetirAnioNuevo))){
                     dialogo = new Dialogo(this.partida);
-                    const mensaje = `@j${jugador.id} tiene utilidades por cobrar de @d${jugador.utilidadAnual}`;
+                    const mensaje = `@j${jugador.id} ha recibido @d${jugador.utilidadAnual} por sus utilidades anuales`;
                     dialogo.abrir(DIAG_TIPO.COBRAR_UTILIDAD, {texto: mensaje});
                 }else{
-                    if(ruta.esCambioCarril() && this.partida.estadoInicial == PE.INICIO_TURNO){
-                        this.permitirCambiarCarril(jugador.posicion);
+                    this.permitirCambiarCarril(jugador.posicion);
+                    if((esCambioAN||esCambioFTV) && this.partida.estadoInicial == PE.INICIO_TURNO){                        
                         this.partida.estadoInicial = "";
                         this.partida.inicializarTurno();
                         console.log("turno inicializado");
