@@ -41,6 +41,7 @@ wss.on('connection', function connection(ws, request) {
         const contenido = msg.content;
         let ja = null;
         let partida = null;
+        let idg,tituloId;
         switch(msg.type){
             case "login":
                 let username = contenido;
@@ -237,6 +238,14 @@ wss.on('connection', function connection(ws, request) {
                     });
                     setTimeout(() => {
                         partida.iniciar();
+                        //////////////////////////////////////////////////Test///////////////////////////////////////////
+                        // const titulosTest = [50,2,33,33,58,67,69,3,3,6,8,12,14,22,24,26,30,34,34,37,38,41,46,46,46,54,59,63,65];
+                        // partida.jugadorActual.efectivo = 500;
+                        // titulosTest.forEach(idtitulo => {
+                        //     partida.jugadorActual.comprarTitulo(idtitulo,true);
+                        // });
+                        // partida.evaluarDepresion(partida.jugadorActual);
+                        //////////////////////////////////////////////////Test///////////////////////////////////////////
                         partida.transmitir();
                     },2*1000);
                 }else if(listos.length==partida.maxJugadores-1 && !contenido){
@@ -324,6 +333,10 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 partida.escribirNota(`@j${ja.id} ha cobrado un pagaré por @d${(creditId+1)*10}`);
+                if(partida.dialogos[0]?.tipo==DIAG_TIPO.DECLARAR_BANCAROTA){
+                    partida.dialogos[0].cerrar();
+                    partida.tablero.procesarCasilla(ja,false,false);
+                }
                 partida.transmitir();
                 break;
             case "finishTurn":
@@ -345,10 +358,44 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 partida = ja.partida;
-                const idg = contenido.idg;
+                idg = contenido.idg;
                 const rc = contenido.rc;
                 const idObj = contenido.idObj;
                 evaluarCerrarDialogo(ja,idg,rc,idObj);
+                partida.transmitir();
+                break;
+            case "returnTitle":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                idg = contenido.dialogoId;
+                tituloId = contenido.tituloId;
+                msj = partida.entregarTitulo(idg,tituloId);
+                if(msj){
+                    enviarError(ws,msj);
+                    return;
+                }
+                partida.transmitir();
+                break;
+            case "retrieveTitle":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                idg = contenido.dialogoId;
+                tituloId = contenido.tituloId;
+                msj = partida.recuperarTitulo(idg,tituloId);
+                if(msj){
+                    enviarError(ws,msj);
+                    return;
+                }
                 partida.transmitir();
                 break;                
         }
@@ -468,7 +515,9 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
                 case DIAG_RSP.OK:
                     if(!jugador.comprarTitulo(dialogo.contenido.id,jugador.posicion == CA.OFERTA)){
                         enviarError(jugador.wsclient,`No tienes efectivo suficiente`);
+                        return;
                     }
+                    partida.caso = undefined;
                     partida.finalizarTurno();
                     break;
                 case DIAG_RSP.CANCEL:
@@ -496,18 +545,18 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             partida.escribirNota(`@j${jugador.id} descansará 1 turno mas`);
             partida.avanzarTurno();
             break;
-        // case Dialogo::DEVOLVER_TITULOS:
-        //     $variable = new Variables();
-        //     $frmTitulosStr = $variable->tomar($idpartida, "frmTitulos", $cnn);
-        //     $frmTitulos = json_decode($frmTitulosStr);
-        //     foreach($frmTitulos->grpDestino as $titulo){
-        //         $jugador->devolverTitulo($idjugador, $titulo->idt, $titulo->q, $cnn);
-        //     }
-        //     $titulosStr = $this->decorarTitulos($frmTitulos->grpDestino,$cnn);
-        //     $mensaje = "@j$idjugador ha pedido $titulosStr";
-        //     partida.escribirNota($mensaje);
-        //     $partida->finalizarTurno($idpartida, $cnn);
-        //     break;
+        case DIAG_TIPO.DEVOLVER_TITULOS:
+            const frmTitulos = dialogo.contenido;
+            frmTitulos.grpDestino.forEach(titulo => {
+                jugador.devolverTitulo(titulo.id, titulo.num);
+            });
+            if(frmTitulos.grpDestino.length>0){
+                const titulosStr = decorarTitulos(frmTitulos.grpDestino,partida.tablero.casillerosDef.items);
+                const mensaje = `@j${jugador.id} ha pedido ${titulosStr}`;
+                partida.escribirNota(mensaje);
+            }
+            partida.finalizarTurno();
+            break;
         // case Dialogo::VENDER_TITULOS:
         //     switch($rc){
         //         case Dialogo::RET_OK:
@@ -540,7 +589,17 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             break;
     }
 }
-
+function decorarTitulos(titulos,casillerosDefItems) {
+    let numero = 0;
+    let texto = "";
+    titulos.forEach(t => {
+        numero+=t.num;
+        const titulo = casillerosDefItems[t.id];
+        texto=`${texto}${t.num} ${titulo.nombre}, `;
+    });
+    texto=`${numero} títulos: ${texto.substring(0,texto.length-3)}`;
+    return texto;
+}
 function evaluarCierreComodin(casilla, jugador) {
     const partida = jugador.partida;
     switch (casilla.id) {
@@ -578,9 +637,7 @@ function evaluarCierreComodin(casilla, jugador) {
             partida.finalizarTurno();
             break;
         case CA.DEPRESION:
-            // $this->evaluarDepresion($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarDepresion");
-            partida.finalizarTurno();
+            partida.evaluarDepresion(jugador);
             break;                 
         case CA.FUSION:
             // $this->evaluarFusion($idpartida,$idjugador,$cnn);
