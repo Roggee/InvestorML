@@ -422,16 +422,17 @@ class Jugador{
     const cantidad = this.pagares.filter( p => {return !p}).length;
     this.pagares.forEach( (_,i) => {this.pagares[i] = true;});
     return cantidad;
-  }  
-  declararBancaRota(idsAcreedores,deudaTotal){
+  }
+  /**
+   * recaudar dinero entre efectivo y propiedades para intentar saldra la deuda.
+   */
+  liquidar_saldar(idsAcreedores,deudaTotal){
     let recaudado = this.efectivo;
     //acumula venta de titulos
     this.titulos.forEach( t => {
       const tInfo = this.partida.tablero.casillerosDef.items[t.id];
-      recaudado+=tInfo.precio*t.num; 
+      recaudado+=tInfo.precio*t.num;
     });
-    //elimina títulos pertenecientes a este jugador
-    this.devolverTitulos();    
     //pago a acreedores. Sólo si hay mas de 1. si la lista es cero entonces se asume se paga al banco
     if(idsAcreedores.length>0){
       let nombres = "";
@@ -455,16 +456,22 @@ class Jugador{
       console.log(`declararBancaRota: el banco se quedó con ${recaudado*1000}`);
       this.partida.escribirNota(`@j${this.id} trató de saldar su deuda con ${nombres}`);
     }
-    
+  }
+  devolverActivosPasivos(){
+    //elimina títulos pertenecientes a este jugador
+    this.devolverTitulos();
     //Los pagarés restantes no es dinero propio por lo tanto no se debe recaudar.
     //El orden se mantiene asignado para los cálculos posteriores.
     this.numTarjSueldo = 0;
     this.efectivo = 0;
     this.utilidadAnual = 0;
-    this.bancaRota = true;
     this.turnosDescanso = 0;
     this.deuda = 0;
     this.pagares = [false,false,false,false,false];
+  }
+  declararBancaRota(idsAcreedores,deudaTotal){
+    liquidar_saldar(idsAcreedores,deudaTotal);
+    devolverActivosPasivos();
     //reasignar host al siguiente
     if(this.isHost){ 
       this.isHost = false;
@@ -472,6 +479,7 @@ class Jugador{
       jSiguiente.isHost = true;
       this.partida.host = jSiguiente;
     }
+    this.bancaRota = true;
   }
   /**
    * Se espera una lista de nombres con el formato: nombre1, nombre2, nombre3, ...
