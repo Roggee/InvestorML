@@ -82,11 +82,16 @@ class Partida {
       jugador.partida = undefined;
       jugador.isHost = false;
       jugador.listo = false;
+      jugador.devolverTitulos();
       //jugador.ficha ="Clásico";
       this.jugadores = this.jugadores.filter( j => j !== jugador);
       this.numJugadores=this.jugadores.length;
       //si no hay jugadores termina función
       if(this.numJugadores == 0) return;
+      //si no hay jugador actual
+      if(this.jugadorActual.id == jugador.id){
+        this.jugadorActual = this.getJugadorSiguiente(jugador.orden);
+      }
       //si no hay un host entonces asigna al primero de la lista
       if(!this.jugadores.find( j => j.isHost)){
         this.jugadores[0].isHost = true;
@@ -125,6 +130,7 @@ class Partida {
      * Se define el jugador actual
      */
     iniciar(){
+      this.mensajes = [];
       this.horaInicio = new Date();
       this.jugadorActual = this.jugadores.find( j => j.orden == 0 );
       this.tablero = new Tablero(this);
@@ -251,12 +257,12 @@ class Partida {
         this.estado = PE.GANADOR;        
         const dialogo = new Dialogo(this);
         dialogo.abrir(DIAG_TIPO.GANADOR,{texto:`¡Felicitaciones, @j${jGanador.id} ha ganado!`});
-        //$this->escribirNota($idpartida, "¡@j$idjugador ha ganado la partida!", $cnn);          
+        this.escribirNota(`@j${jGanador.id} ha ganado la partida.`);
         return true;
       }
       return false;
     }
-    evaluarGanadorLimiteFortuna() { 
+    evaluarGanadorLimiteFortuna() {
       if( this.reglas.modoVictoria == "lf"){
         //Ganador por límite de fortuna
         const jGanador = this.jugadores.find( j => {return j.efectivo>= this.reglas.limiteFortuna && !j.bancaRota });
