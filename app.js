@@ -599,7 +599,7 @@ function decorarTitulos(titulos,casillerosDefItems) {
         const titulo = casillerosDefItems[t.id];
         texto=`${texto}${t.num} ${titulo.nombre}, `;
     });
-    texto=`${numero} títulos: ${texto.substring(0,texto.length-3)}`;
+    texto=`${numero} títulos: ${texto.substring(0,texto.length-2)}`;
     return texto;
 }
 function evaluarCierreComodin(casilla, jugador) {
@@ -632,7 +632,7 @@ function evaluarCierreComodin(casilla, jugador) {
         case CA.MORATORIA:
             const cantidad = jugador.recuperarPagares();
             if(cantidad>0){
-                partida.escribirNota(`@j${jugador.id} ha recuperado $cantidad de sus pagares`);
+                partida.escribirNota(`@j${jugador.id} ha recuperado ${cantidad} de sus pagares`);
             }else{
                 partida.escribirNota(`@j${jugador.id} no ha usado ninguno de sus pagares`);
             }
