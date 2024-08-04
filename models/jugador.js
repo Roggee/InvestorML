@@ -290,17 +290,18 @@ class Jugador{
     tInfo.cantDisponible += num;
     if(titulo.num==0){
       //eliminar poseedor de titulo
-      tInfo.poseedores = tInfo.poseedores.filter( p => {return p.id!=this.id});
+      tInfo.poseedores = tInfo.poseedores.filter( p => {return p!=this.id});
       //eliminar titulo de la lista de titulos.
       this.titulos = this.titulos.filter( t => {return t.id!=titulo.id});
     }
-    this.calcularUtilidadAnual();   
+    this.calcularUtilidadAnual();
   }
 
   devolverTitulos(){
     while(this.titulos.length>0){
       const titulo = this.titulos[0];
-      const tInfo = this.partida.tablero.titulos.find(t => {return t.id == titulo.id});
+      const tInfo = this.partida?.tablero.titulos.find(t => {return t.id == titulo.id});
+      if(!tInfo) continue;
       //eliminar poseedor de titulo
       tInfo.poseedores = tInfo.poseedores.filter( p => {return p.id!=this.id});
       //sumar cantidad de titulos devueltos
@@ -316,7 +317,7 @@ class Jugador{
     let cant = 0;
     this.titulos.forEach( t => {
       const tInfo = this.partida.tablero.casillerosDef.items[t.id];
-      if(tInfo.tipo == CA_TIPO.TITULO_INVR){        
+      if(tInfo.tipo == CA_TIPO.TITULO_INVR){
         const monto = tInfo.utilidades[t.num-1];
         this.utilidadAnual+=monto;
         cant+=t.num;
