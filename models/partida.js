@@ -348,7 +348,8 @@ class Partida {
       const numTitulos = jugador.getNumTitulos();
       const dev = Math.floor(numTitulos/2);
       if(dev>0) {
-          const contenido = {pendientes: dev,grpOrigen: jugador.titulos,grpDestino:[],nf:Math.ceil(jugador.titulos.length/6)};
+          const grpOrigen = JSON.parse(JSON.stringify(jugador.titulos));
+          const contenido = {pendientes: dev,grpOrigen: grpOrigen,grpDestino:[],nf:Math.ceil(jugador.titulos.length/6)};
           const dialogo = new Dialogo(this);
           dialogo.abrir(DIAG_TIPO.DEVOLVER_TITULOS,contenido);
       }else{
