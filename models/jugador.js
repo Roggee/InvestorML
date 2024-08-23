@@ -268,12 +268,15 @@ class Jugador{
     return false;    
   }
   adquirirTitulo(idtitulo){
-    const jt = this.titulos.find( t => {return t.id == idtitulo});
+    let jt = this.titulos.find( t => {return t.id == idtitulo});
     if(jt){
       jt.num++;
     }else{
-      this.titulos.push({id:idtitulo,num:1});
-    }
+      jt = {id:idtitulo,num:1};
+      this.titulos.push(jt);
+    }    
+    const titDef = this.partida.tablero.casillerosDef.items[idtitulo];
+    jt.util=this.calcularPago(titDef);
     this.calcularUtilidadAnual();
   }
   devolverTitulo(idtitulo,num){
@@ -294,6 +297,10 @@ class Jugador{
       tInfo.poseedores = tInfo.poseedores.filter( p => {return p!=this.id});
       //eliminar titulo de la lista de titulos.
       this.titulos = this.titulos.filter( t => {return t.id!=titulo.id});
+    }else{
+      const titDef = this.partida.tablero.casillerosDef.items[idtitulo];
+      const utilidades = this.calcularPago(titDef);
+      titulo.util = utilidades;
     }
     this.calcularUtilidadAnual();
   }
@@ -304,7 +311,7 @@ class Jugador{
       const tInfo = this.partida?.tablero.titulos.find(t => {return t.id == titulo.id});
       if(!tInfo) continue;
       //eliminar poseedor de titulo
-      tInfo.poseedores = tInfo.poseedores.filter( p => {return p.id!=this.id});
+      tInfo.poseedores = tInfo.poseedores.filter( p => {return p!=this.id});
       //sumar cantidad de titulos devueltos
       tInfo.cantDisponible += titulo.num;
       //eliminar titulo de la lista de titulos.
@@ -336,21 +343,20 @@ class Jugador{
 
   pagarUtilidades(idAcreedor,titInfo){
     const acreedor = this.partida.jugadores.find( j=> {return j.id == idAcreedor});
-    let utilidades = this.calcularPago(idAcreedor,titInfo);
+    let utilidades = acreedor.calcularPago(titInfo);
     //pagar obligaciones
     return this.pagar([acreedor],utilidades);
   }
 
-  calcularPago(idAcreedor,titInfo) {
-    const acreedor = this.partida.jugadores.find( j=> {return j.id == idAcreedor});
-    const jt = acreedor.tiene(titInfo.id);
+  calcularPago(titInfo) {
+    const jt = this.tiene(titInfo.id);
     let utilidades = 0;
     //sumar utilidades de propieddad
     utilidades += titInfo.utilidades[jt.num-1];
     //duplicar cientifico
-    utilidades += utilidades*(acreedor.tiene(CA.CIENTIFICO)?1:0);
+    utilidades += utilidades*(this.tiene(CA.CIENTIFICO)?1:0);
     //sumar economista
-    utilidades += jt.num*(acreedor.tiene(CA.ECONOMISTA)?5:0);
+    utilidades += jt.num*(this.tiene(CA.ECONOMISTA)?5:0);
     return utilidades;
   }
 
