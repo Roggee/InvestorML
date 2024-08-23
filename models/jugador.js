@@ -1,7 +1,7 @@
 const Casillas = require('./casillas');
 const Ruta = require('./ruta');
 const THREE = require('three');
-const {PE,CA,CA_POS_INTERNAS,CA_TIPO, DIAG_TIPO} = require("./valores");
+const {PE,CA,CA_TIPO, DIAG_TIPO} = require("./valores");
 const { stringify } = require('uuid');
 const Dialogo = require('./dialogo');
 
@@ -225,11 +225,12 @@ class Jugador{
   reposarFicha(){
     const csl = this.partida.tablero.casillerosDef.items[this.posicion];
     const iLibre = this.partida.tablero.getPosicionLibre(this.posicion);
+    console.log(`${this.nombre} tiene la posición libre = ${iLibre}`);
     let transformacion = new THREE.Matrix4();
     transformacion.makeRotationY(csl.giro*Math.PI/180.0);
-    let vpi = CA_POS_INTERNAS[iLibre];
+    let vpi = csl.posInternas[iLibre];
     let p = new THREE.Matrix4();
-    p.makeTranslation(vpi[0],vpi[1],vpi[2]);
+    p.makeTranslation(vpi);
     transformacion.premultiply(p);
     p.makeTranslation(csl.coords);
     transformacion.premultiply(p);
@@ -471,8 +472,8 @@ class Jugador{
     this.pagares = [false,false,false,false,false];
   }
   declararBancaRota(idsAcreedores,deudaTotal){
-    liquidar_saldar(idsAcreedores,deudaTotal);
-    devolverActivosPasivos();
+    this.liquidar_saldar(idsAcreedores,deudaTotal);
+    this.devolverActivosPasivos();
     //reasignar host al siguiente
     if(this.isHost){ 
       this.isHost = false;

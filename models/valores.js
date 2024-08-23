@@ -106,8 +106,6 @@ const CA_TIPO = {
     MES : 3,
     TITULO_PROF : 4
 }
-//POSICIONES INTERNAS
-const CA_POS_INTERNAS = [[2,0,7],[-2,0,7],[2,0,-7],[-2,0,-7]];
 
 //DIALOGO TIPO
 const DIAG_TIPO = {
@@ -144,4 +142,4 @@ const DIAG_RSP = {
     WAIT : 2   
 }
 
-module.exports = {PE,TABLA_DADOS,CA,CA_POS_INTERNAS,CA_TIPO,DIAG_TIPO,DIAG_RSP}
+module.exports = {PE,TABLA_DADOS,CA,CA_TIPO,DIAG_TIPO,DIAG_RSP}
