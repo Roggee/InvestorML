@@ -120,10 +120,10 @@ class Partida {
         const j = Math.floor(Math.random() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
       }
-      //asignar nuevo orden y posicion relativa igual a al orden por ser la primera vez.
+      //asignar nuevo orden y posicion interna nula
       this.jugadores.forEach((j,index) => {
         j.orden = array[index];
-        j.posRelativa = array[index];
+        j.posRelativa = -1;
       });
     }
     /**
@@ -158,6 +158,7 @@ class Partida {
 
     lanzarDados(valor){
       this.tablero.limpiar();
+      this.jugadores.forEach(j => j.f1 = false);
       let indice1 = Math.floor(Math.random()*5);
       let indice2 = Math.floor(Math.random()*5);
       if(valor != undefined){
