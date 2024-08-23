@@ -10,6 +10,9 @@ class Casillas{
         //convertir arreglo de coordenadas en vector3
         this.items.forEach(item => {
             item.coords = new THREE.Vector3(item.coords.x,item.coords.y,item.coords.z);
+            item.posInternas.forEach( (pi,i) => {
+                item.posInternas[i] = new THREE.Vector3(pi.x,pi.y,pi.z);
+            });
         });
         //console.log(`CASILLAS.ITEMS2: ${JSON.stringify(this.items)}`);
     }
