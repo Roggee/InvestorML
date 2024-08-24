@@ -124,14 +124,22 @@ wss.on('connection', function connection(ws, request) {
                 break;
             case "quit":
                 ja = validarJugador(msg,ws);
-                if(!ja) return;
+                if(!ja) {
+                    console.log("Salió!!!!");
+                    enviarError(ws,`el jugador no existe`);                    
+                    return;
+                }
                 partida = ja.partida;
                 partida.eliminarJugador(ja);
-                partida.escribirNota(`${ja.nombre} ha salido de la partida`);
+                console.log("jugador eliminado!!!");
+                partida.escribirNota(`@j${ja.id} ha salido de la partida`);
+                console.log("Nota escrita!!!");
                 partida.evaluarGanador();
+                console.log("Evaluar Ganador!!!");
                 partida.jugadores.forEach( j => {
-                    let rsp = {type:"game",content:{partida:partida.minify(),msj:`${ja.nombre} ha salido de la partida`}};
+                    let rsp = {type:"game",content:{partida:partida.minify(),msj:`@j${ja.id} ha salido de la partida`}};
                     j.wsclient.send(JSON.stringify(rsp));
+                    console.log("Partida enviada a jugadores cuando jugador salió!!!");
                 });
                 prtFact.cleanEmpty();
 
@@ -311,10 +319,13 @@ wss.on('connection', function connection(ws, request) {
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
                 partida = ja.partida;
+                if(ja.f1){
+                    console.log(`${ja.nombre} YA ha notificado`);
+                    return;
+                }
                 ja.f1 = true;
                 console.log(`${ja.nombre} ha notificado`);
-                if(partida.jugadores.filter( j => j.f1).length == partida.jugadores.length){
-                    partida.jugadores.forEach(j => j.f1 = false);
+                if(partida.jugadores.filter( j => {return j.f1}).length == partida.jugadores.length){
                     partida.validarResultadoDados();
                 }else{
                     console.log("hay pendientes en notificar");
