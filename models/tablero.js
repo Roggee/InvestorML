@@ -16,7 +16,8 @@ class Tablero{
                 color: Tablero.COLOR_PREDET,
                 transparencia: 1.0,
                 elegible: false,
-                posInternas: [false,false,false,false]
+                posInternas: [false,false,false,false,false,false],
+                giro: Math.round(((c.giro*Math.PI)/180)*1000)/1000
             });
             //agregar títulos de inversión y profesionales
             if([CA_TIPO.TITULO_INVR,CA_TIPO.TITULO_PROF].includes(c.tipo)){
@@ -82,8 +83,9 @@ class Tablero{
                     if(resultado){ //se la logrado pagar la deuda
                         dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR,{texto: resultado});
                         this.partida.escribirNota(resultado);
-                    }else{ //no se pudo pagar la deuda. Insolvente
-                        const deuda = jugador.calcularPago(titulo.poseedores[0],casilla);
+                    }else{ //no se pudo pagar la deuda. Insolvente                        
+                        const acreedor = this.partida.jugadores.find( j => {return j.id == titulo.poseedores[0]});
+                        const deuda = acreedor.calcularPago(casilla);
                         dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:titulo.poseedores, deuda: deuda});
                     }
                 }else{
@@ -168,7 +170,7 @@ class Tablero{
      * actualiza las posiciones relativas de las casillas utilizadas por los jugadores en la partida.
      */
     updatePosInternasCasilla(){
-        this.casilleros.forEach( c => c.posInternas = [false,false,false,false] );
+        this.casilleros.forEach( c => c.posInternas = [false,false,false,false,false,false] );
         let jEnDescanso = this.partida.jugadores.filter(j => j.posRelativa != -1 && !j.bancaRota);
         jEnDescanso.forEach(j => {
            this.casilleros[j.posicion].posInternas[j.posRelativa] = true;
@@ -184,16 +186,20 @@ class Tablero{
                 return false;
             }
             return true;
-        })
+        });
         return iPosInterna;
     }
 
     mostrarCaminos(rutas) {
         const finP = rutas.principal.getFin();
         const finS = rutas.secundario.getFin();
+        const ini = rutas.principal.get(0);
         this.casilleros.forEach( (c,index) => {
             if([finP,finS].includes(index)){
                 c.elegible = true;
+                c.transparencia = 1.0;
+            }else if(index == ini){
+                c.elegible = false;
                 c.transparencia = 1.0;
             }else{
                 c.elegible = false;
