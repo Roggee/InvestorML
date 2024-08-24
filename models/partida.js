@@ -51,6 +51,7 @@ class Partida {
       this.dialogos = [];
       this.mensajes = [];
       this.horaInicio = undefined;
+      this.L = [];
     }
     minify(){
       let strp = JSON.stringify(this,(key,value)=>{
@@ -79,11 +80,13 @@ class Partida {
       return true;
     }
     eliminarJugador(jugador){
+      jugador.devolverTitulos();
       jugador.partida = undefined;
       jugador.isHost = false;
       jugador.listo = false;
-      jugador.devolverTitulos();
       //jugador.ficha ="Clásico";
+      //Se agrega el jugador a la lista de perdedores
+      this.L.push({id:jugador.id,nombre:jugador.nombre,colorId:jugador.colorId});
       this.jugadores = this.jugadores.filter( j => j !== jugador);
       this.numJugadores=this.jugadores.length;
       //si no hay jugadores termina función
