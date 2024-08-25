@@ -33,7 +33,7 @@ class Jugador{
     this.posRelativa = -1; // la posición dentro de casilla.
     this.fichaTransform = undefined;
     this.f1 = false; //para indicar si ha terminado la animación local de lanzamiento Dados
-    this.titulos = []; //{id,num}
+    this.titulos = []; //{id,num,util}
   }
 
   minify(){
@@ -185,15 +185,17 @@ class Jugador{
    * Si el siguiente jugador está descansando entonces devuelve está instancia. Si no devuelve UNDEFINED
    */
   terminarTurno() {
-    //Limpiar acción de FUSIÓN no finalizada
-    //$variable->tomar($idpartida, "fusionT0", $cnn);
+    //limpiar acción de FUSIÓN no finalizada
+    this.partida.fusionT0 = undefined;
+    this.partida.fusionT1 = undefined;
     this.partida.tablero.limpiar();
+    this.partida.dialogos=[];
     //calcular siguiente jugador y asignar animación de ficha correspondiente
     let jActual = this.partida.getJugadorSiguiente(this.orden);
     this.partida.jugadorActual = jActual;
     this.reposarFicha();
     jActual.activarFicha();    
-    //limpiar varialbes de turno
+    //limpiar variables de turno
     this.partida.tablero.limpiar();
     this.partida.d1Ix=undefined;
     this.partida.d2Ix=undefined;
@@ -261,14 +263,14 @@ class Jugador{
     if(precio <= this.efectivo){
         this.efectivo -= precio;
         this.adquirirTitulo(idtitulo);
-        this.partida.tablero.entregarTitulo(this,idtitulo);
         this.partida.escribirNota(`@j${this.id} ha comprado ${titulo.nombre} por @d${precio}`);
         return true;
     }
     return false;    
   }
   adquirirTitulo(idtitulo){
-    let jt = this.titulos.find( t => {return t.id == idtitulo});
+    let jt = this.titulos.find( t => {return t.id == idtitulo});    
+    this.partida.tablero.entregarTitulo(this,idtitulo);
     if(jt){
       jt.num++;
     }else{
@@ -347,9 +349,19 @@ class Jugador{
     //pagar obligaciones
     return this.pagar([acreedor],utilidades);
   }
-
+  /**
+   * Sólo aplica para títulos de inversión, no para títulos profesionales.
+  */
   calcularPago(titInfo) {
+    if(titInfo.tipo != CA_TIPO.TITULO_INVR){
+      console.log(`Sólo se puede calcular el pago para los títulos de inversión`);
+      return 0;
+    }
     const jt = this.tiene(titInfo.id);
+    if(!jt){
+      console.log(`El jugador no posee ${titInfo.nombre}`);
+      return 0;
+    }
     let utilidades = 0;
     //sumar utilidades de propieddad
     utilidades += titInfo.utilidades[jt.num-1];
@@ -357,6 +369,7 @@ class Jugador{
     utilidades += utilidades*(this.tiene(CA.CIENTIFICO)?1:0);
     //sumar economista
     utilidades += jt.num*(this.tiene(CA.ECONOMISTA)?5:0);
+
     return utilidades;
   }
 
