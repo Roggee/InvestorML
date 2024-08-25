@@ -254,7 +254,6 @@ wss.on('connection', function connection(ws, request) {
                         // titulosTest.forEach(idtitulo => {
                         //     partida.jugadorActual.comprarTitulo(idtitulo,true);
                         // });
-                        // partida.evaluarDepresion(partida.jugadorActual);
                         //////////////////////////////////////////////////Test///////////////////////////////////////////
                         partida.transmitir();
                     },2*1000);
@@ -302,6 +301,30 @@ wss.on('connection', function connection(ws, request) {
                 partida = ja.partida;
                 //calcular ruta y estado ficha
                 evaluarSeleccionCasilla(ja,partida,contenido);
+                break;
+            case "undoFusion":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                if(contenido.parte=="origen" && partida.fusionT0){
+                    partida.fusionT0 = undefined;
+                    partida.tablero.mostrarTitulosDe(ja,partida.fusionT1);
+                }else if (contenido.parte=="destino" && partida.fusionT1){
+                    partida.fusionT1 = undefined;
+                    if(partida.fusionT0){
+                        partida.tablero.mostrarTitulosDisponibles(ja,"rcv", partida.fusionT0);
+                    }else{
+                        partida.tablero.mostrarTitulosDe(ja);
+                    }
+                }else{
+                    enviarError(ws,"Debe definir que título devolver");
+                    return;
+                }
+                partida.transmitir();
                 break;
             case "rollDice":
                 ja = validarJugador(msg,ws);
@@ -441,8 +464,12 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
             partida.transmitir();
             break;
         case PE.FUSIONANDO:
-            //$this->evaluarFusionaTitulo($idpartida,$idjugador,$idcasilla,$cnn);
-            partida.transmitir();
+            let ret = partida.evaluarFusionaTitulo(jugador,idcasilla);
+            if(ret){
+                enviarError(jugador.wsclient,ret);
+            }else{
+                partida.transmitir();
+            }            
             break;
         case PE.FRACASANDO:
             //$this->evaluarDevuelveTitulo($idpartida,$idjugador,$idcasilla,$cnn);
@@ -570,6 +597,14 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             }
             partida.finalizarTurno();
             break;
+        case DIAG_TIPO.FUSIONANDO:
+            const ret = partida.fusionarTitulos(jugador);
+            if(ret){
+                enviarError(jugador.wsclient,ret);
+            }else{
+                partida.finalizarTurno();
+            }
+            break;
         // case Dialogo::VENDER_TITULOS:
         //     switch($rc){
         //         case Dialogo::RET_OK:
@@ -637,7 +672,7 @@ function evaluarCierreComodin(casilla, jugador) {
             break;
         case CA.INFLACION : //Pierde la mitad de su dinero efectivo
             const devuelto = jugador.aplicarInflacion();
-            partida.escribirNota(`@j${jugador.id} ha perdido @d$devuelto de su dinero efectivo`);
+            partida.escribirNota(`@j${jugador.id} ha perdido @d${devuelto} de su dinero efectivo`);
             partida.finalizarTurno();
             break;
         case CA.MORATORIA:
@@ -653,9 +688,7 @@ function evaluarCierreComodin(casilla, jugador) {
             partida.evaluarDepresion(jugador);
             break;                 
         case CA.FUSION:
-            // $this->evaluarFusion($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarFusion");
-            partida.finalizarTurno();
+            partida.evaluarFusion(jugador);
             break;                        
         case CA.PAGUE_IMPUESTO:
             // $this->evaluarPagoImpuestos($idpartida,$idjugador,$cnn);
