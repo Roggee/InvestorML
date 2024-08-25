@@ -1,7 +1,7 @@
 const Jugador = require("./jugador");
 const Tablero = require("./tablero");
 const Rutas = require("./rutas");
-const {PE,TABLA_DADOS,DIAG_TIPO,CA} = require("./valores");
+const {PE,TABLA_DADOS,DIAG_TIPO,CA, CA_TIPO} = require("./valores");
 const Dialogo = require("./dialogo");
 
 class Partida {
@@ -217,7 +217,7 @@ class Partida {
       }, 500);
     }
     /**
-     * Cambia el estado de la partida a FINALIZANDO_TURNO y el boton de acción a Terminar
+     * Cambia el estado de la partida a FINALIZANDO_TURNO
      */
     finalizarTurno(){
       const nuevo_estado = PE.FINALIZANDO_TURNO;      
@@ -409,7 +409,73 @@ class Partida {
           dialogo.contenido.grpOrigen.push({"id":tituloId,"num":1});
       }
       dialogo.contenido.pendientes++;
-    }    
+    }
+    evaluarFusion(jugador) {
+      const numTitulos = jugador.getNumTitulos(CA_TIPO.TITULO_INVR);
+      if(numTitulos>0){// tiene titulos para intercambiar?
+          const numDisponibles = this.tablero.mostrarTitulosDisponibles(jugador,'rcv');
+          if(numDisponibles>0){
+              this.tablero.mostrarTitulosDe(jugador);
+              this.estado = PE.FUSIONANDO;
+              const dialogo = new Dialogo(this);
+              dialogo.abrir(DIAG_TIPO.FUSIONANDO);
+          }else{
+              this.tablero.limpiar();
+              this.escribirNota("No hay inversiones disponibles");
+              this.finalizarTurno();
+          }
+      }else{
+          this.escribirNota(`@j${jugador.id} no posee títulos de inversion para intercambiar`);
+          this.finalizarTurno();
+      }
+    }
+    evaluarFusionaTitulo(jugador, idtitulo) {
+      let idtitulo0 = this.fusionT0;
+      if(!idtitulo0){
+          let tit = jugador.tiene(idtitulo);
+          if(tit){
+            this.fusionT0 = idtitulo;            
+            if(!this.fusionT1){
+              this.tablero.mostrarTitulosDisponibles(jugador,"rcv", idtitulo);
+            }else{
+              this.tablero.limpiar();
+            }
+          }else{
+            return "Debes elegir un título tuyo primero";
+          }
+      }else {
+        let idtitulo1 = this.fusionT1;
+        if(!idtitulo1){
+          if(idtitulo1==idtitulo0){
+            return "No puedes intercambiar el mismo título";
+          }
+          let tit = this.tablero.titulos.filter(t => {
+            const casDef = this.tablero.casillerosDef.items.find( cd => {return cd.id == idtitulo});
+            return t.cantDisponible>0 && (t.poseedores.includes(jugador.id) || t.poseedores.length==0 ) && casDef.tipo == CA_TIPO.TITULO_INVR && t.id == idtitulo1;
+          });
+          if(tit){
+            this.fusionT1 = idtitulo;
+            this.tablero.limpiar();
+          }else{
+            return "El título seleccionado no está disponible";
+          }
+        }else{
+          return "Acción de fusión no válida";
+        }
+      }
+    }
+    fusionarTitulos(jugador){
+      if(!this.fusionT0 || !this.fusionT1){
+        return "No se han definido los títulos para fusionar";
+      }
+      jugador.devolverTitulo(this.fusionT0,1);
+      jugador.adquirirTitulo(this.fusionT1);
+      const titulo0 = this.tablero.casillerosDef.items.find( cd => {return cd.id == this.fusionT0});
+      const titulo1 = this.tablero.casillerosDef.items.find( cd => {return cd.id == this.fusionT1});
+      this.escribirNota(`@j${jugador.id} ha intercambiado ${titulo0.nombre} por ${titulo1.nombre}`);
+      this.fusionT0 = undefined;
+      this.fusionT1 = undefined;
+    }
     escribirNota(msj){
       const ahora = new Date();
       const diff = new Date(ahora - this.horaInicio);
