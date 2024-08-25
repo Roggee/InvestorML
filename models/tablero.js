@@ -89,7 +89,7 @@ class Tablero{
                         dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:titulo.poseedores, deuda: deuda});
                     }
                 }else{
-                    this.partida.escribirNota(`@j${jugador.id} posee todos los títulos de esta inversión`);
+                    this.partida.escribirNota(`@j${jugador.id} posee todos los títulos de ${casilla.nombre.toUpperCase()}`);
                     this.partida.finalizarTurno();
                 }
                 break;
@@ -209,7 +209,7 @@ class Tablero{
     }
     
     /**
-     * muestra y devuelve la cantidad de titulos disponibles del jugador actuales.
+     * muestra y devuelve la cantidad de titulos que el jugador indicado puede adquirir.
      * @param colorRubro el color del título de inversión. r,c,v o la combinación de ellos.
      * @param excepto el id de un titulo que se debe excluir de la selección (Caso FUSIÓN)
      */
@@ -223,7 +223,7 @@ class Tablero{
         this.titulos.forEach( t => {
             const cd = this.casillerosDef.items[t.id];
             if(cd.tipo!==CA_TIPO.TITULO_INVR) return;
-            if(cd.colorRubro!==colorRubro) return;
+            if(!colorRubro.includes(cd.colorRubro)) return;
             if(t.poseedores.length > 0 && !t.poseedores.includes(jugador.id)) return;
             if(t.cantDisponible == 0) return;
             if(t.id == excluido) return;
@@ -235,20 +235,26 @@ class Tablero{
         });
         return cantidad;
     }
-    // /**
-    //  * @param $todo si es true entonces muestra todos los títulos del jugador, caso contrario sólo muestra los títulos de inversión.
-    //  */
-    // public function mostrarTitulosDe($idjugador, $todo, $cnn) {
-    //     $tipos = $todo?"2,4":"2";
-    //     $cnn->consultar("UPDATE mls_tablero INNER JOIN mls_jugador_titulos T2 ON T2.idtitulo = mls_tablero.id ".
-    //                     "                   INNER JOIN mls_jugador T1 ON T1.idpartida = mls_tablero.idpartida AND T1.id = T2.idjugador ".
-    //                     "                   INNER JOIN mls_color T3 ON T3.id = T1.color ".
-    //                     "                   INNER JOIN mls_casillas T4 ON T4.id = mls_tablero.id ".
-    //                     "SET mls_tablero.color = T3.hexa, ".
-    //                     "    mls_tablero.transparencia = 0.5,".
-    //                     "    mls_tablero.elegible = true ".
-    //                     "WHERE T2.idjugador = $idjugador AND T4.tipo IN($tipos)");
-    // }
+    /**
+     * muestra los títulos del jugador indicado.
+     * @param $todo si es true entonces muestra todos los títulos del jugador, caso contrario sólo muestra los títulos de inversión.
+     */
+    mostrarTitulosDe(jugador,excepto) {
+        const excluido = (excepto?excepto:-1);
+        const color = "FFFFFF";//Tablero.COLOR_PREDET;
+        //this.casilleros.forEach( c => {c.elegible = false,c.transparencia=0.5,c.color = color});
+        this.casilleros.forEach( c => {c.elegible = false,c.transparencia=1,c.color = color});
+        this.titulos.forEach( t => {
+            let cd = this.casillerosDef.items[t.id];
+            if(cd.tipo!==CA_TIPO.TITULO_INVR) return;
+            if(!t.poseedores.includes(jugador.id)) return;
+            if(t.id == excluido) return;
+
+            const ct = this.casilleros[t.id];
+            ct.elegible = true;
+            ct.transparencia = 1;
+        });
+    }
 
     // /**
     //  * permite que todas las casilla sean elegibles excepto la central(MILLONARIO) y la indicada en $excluir.
