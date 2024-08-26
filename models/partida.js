@@ -59,7 +59,7 @@ class Partida {
         if (["wsclient","token","casillerosDef","f1","posInternas","horaInicio"].includes(key)) return undefined;
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
-        if (key=="jugadorActual"||key=="ganador") return (value?value.id:undefined);
+        if (["jugadorActual","ganador","jbk"].includes(key)) return (value?value.id:undefined);
         return value;
       });
       let copia = JSON.parse(strp);
@@ -541,10 +541,8 @@ class Partida {
           this.evaluarPagoImpuestos(jugador);
           break;
         case CA.GANA_JUICIO:
-            // $this->evaluarGanaJuicio($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarGanaJuicio");
-            this.finalizarTurno();
-            break;
+          this.evaluarGanaJuicio(jugador);
+          break;
         case CA.PAGUE_DIVIDENDOS: // PAGAR 20 A CADA JUGADOR
             // $this->evaluarPagarDividendos($idpartida,$idjugador,$cnn);
             console.log("pendiente: evaluarPagarDividendos");
@@ -585,6 +583,30 @@ class Partida {
             break;
       }
     }
+    evaluarGanaJuicio(jugador) {
+      //calcular siguiente jugador habilitado
+      const jSiguiente = this.getJugadorSiguiente(jugador.orden);
+      if(jSiguiente.turnosDescanso>0){
+          const dialogo = new Dialogo(this);
+          dialogo.abrir(DIAG_TIPO.NO_INDEMNIZAR,{texto:`Esa indemnización tendrá que esperar. @j${jSiguiente.id} esta descansando.`});
+          this.finalizarTurno();
+          return;
+      }
+      //efectuar pago
+      const montoPago = 40;
+      const resultado = jSiguiente.pagar([jugador], montoPago);
+      const dialogo = new Dialogo(this);
+      if(resultado){ //se la logrado pagar la deuda
+          dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR, {texto: resultado});
+          this.escribirNota(resultado);
+      }else{ //no se pudo pagar la deuda. Insolvente
+          //$variable->guardar($idpartida, "acreedores", json_encode($acreedores), $cnn);
+          //$variable->guardar($idpartida, "deuda",$montoPago, $cnn);
+          this.jbk = jugador;
+          this.jugadorActual = jSiguiente;
+          dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jSiguiente.id, idacreedores:[jugador.id], deuda: montoPago});
+      }        
+    }    
     evaluarRegalosDelBanco(jugador, monto) {
       jugador.cobrarDinero(monto);
       this.escribirNota(`@j${jugador.id} ha cobrado @d${monto} al Banco`);
