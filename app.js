@@ -371,7 +371,9 @@ wss.on('connection', function connection(ws, request) {
                 partida.escribirNota(`@j${ja.id} ha cobrado un pagaré por @d${(creditId+1)*10}`);
                 if(partida.dialogos[0]?.tipo==DIAG_TIPO.DECLARAR_BANCAROTA){
                     partida.dialogos[0].cerrar();
-                    partida.tablero.procesarCasilla(ja,false,false,true);
+                    partida.jugadorActual = partida.jbk?partida.jbk:partida.jugadorActual;
+                    partida.jbk = undefined;
+                    partida.tablero.procesarCasilla(partida.jugadorActual,false,false,true);
                 }
                 partida.transmitir();
                 break;
