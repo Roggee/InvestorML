@@ -63,8 +63,14 @@ class Tablero{
     setElegible(casillaIDs,elegible){
         casillaIDs.forEach( c => this.casilleros[c].elegible = elegible);
     }
-
-    procesarCasilla(jugador,esCambioAN,esCambioFTV){
+    /**
+     * 
+     * @param {*} jugador 
+     * @param {*} esCambioAN 
+     * @param {*} esCambioFTV 
+     * @param {*} esReproceso indica si se vuelve a procesar la casilla por que viene de una situación de insolvencia
+     */
+    procesarCasilla(jugador,esCambioAN,esCambioFTV,esReproceso){
         const idcasilla = jugador.posicion;
         const casilla = this.casillerosDef.items[idcasilla];
         let titulo;
@@ -111,17 +117,13 @@ class Tablero{
                 }
                 break;
             case CA_TIPO.COMODIN:
-                dialogo = new Dialogo(this.partida);
-                dialogo.abrir(DIAG_TIPO.COMODIN,casilla);
-                // //vuelve a evaluar casilla luego de un CONTINUAR?
-                // if($variable->tomar($idpartida, "deuda", $cnn)){
-                //     //se eliminan las variables de deuda porque se volvera a evaluar el estado y de ser necesario se vuelven a crear.
-                //     $variable->tomar($idpartida, "acreedores", $cnn); 
-                //     $dialogo->cerrar($idpartida, $dialogo->iddialogo, $cnn);
-                //     $servidorML = new ServidorML();
-                //     //entrará a evaluar cierra de comodín                    
-                //     $servidorML->evaluarCierreComodin($casilla->id,$jugador->id,$idpartida,$cnn);
-                // }
+                //vuelve a evaluar casilla luego de una situación de insolvencia
+                if(esReproceso){               
+                    this.partida.evaluarCierreComodin(casilla,jugador);
+                }else{
+                    dialogo = new Dialogo(this.partida);
+                    dialogo.abrir(DIAG_TIPO.COMODIN,casilla);
+                }
                 break;
             default: //Año nuevo, Festividades, Meses,
                 console.log("anio nuevo, festividades, meses");
