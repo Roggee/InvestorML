@@ -371,7 +371,7 @@ wss.on('connection', function connection(ws, request) {
                 partida.escribirNota(`@j${ja.id} ha cobrado un pagaré por @d${(creditId+1)*10}`);
                 if(partida.dialogos[0]?.tipo==DIAG_TIPO.DECLARAR_BANCAROTA){
                     partida.dialogos[0].cerrar();
-                    partida.tablero.procesarCasilla(ja,false,false);
+                    partida.tablero.procesarCasilla(ja,false,false,true);
                 }
                 partida.transmitir();
                 break;
@@ -484,7 +484,7 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
 
 function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
     const partida = jugador.partida;
-    let hayGanador;
+    let hayGanador,ret;
     dialogo = partida.dialogos.find( d=> {return d.id==idg});
     if(!dialogo) {
         enviarError(jugador.wsclient,`el dialogo ${idg} no existe`);
@@ -493,7 +493,10 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
     dialogo.cerrar();
     switch (dialogo.tipo){
         case DIAG_TIPO.COMODIN:
-            evaluarCierreComodin(dialogo.contenido,jugador);
+            ret = partida.evaluarCierreComodin(dialogo.contenido,jugador);
+            if(ret){
+                enviarError(jugador.wsclient,ret);
+            }
             break;
         // case Dialogo::AVISO_PAGARES_PAGO:
         //     $partida->evaluarGanador($idpartida, $cnn);
@@ -563,7 +566,10 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
                 case DIAG_RSP.CANCEL:
                     if(partida.caso){
                         const casilla = partida.tablero.casillerosDef.items[partida.caso];
-                        evaluarCierreComodin(casilla, jugador);
+                        ret = partida.evaluarCierreComodin(casilla, jugador);
+                        if(ret){
+                            enviarError(jugador.wsclient,ret);
+                        }
                     }else{
                         partida.finalizarTurno();
                     }
@@ -598,7 +604,7 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             partida.finalizarTurno();
             break;
         case DIAG_TIPO.FUSIONANDO:
-            const ret = partida.fusionarTitulos(jugador);
+            ret = partida.fusionarTitulos(jugador);
             if(ret){
                 enviarError(jugador.wsclient,ret);
             }else{
@@ -647,106 +653,6 @@ function decorarTitulos(titulos,casillerosDefItems) {
     });
     texto=`${numero} títulos: ${texto.substring(0,texto.length-2)}`;
     return texto;
-}
-function evaluarCierreComodin(casilla, jugador) {
-    const partida = jugador.partida;
-    switch (casilla.id) {
-        case CA.VOLVER_TIRAR_DADOS_INI: 
-        case CA.VOLVER_TIRAR_DADOS_FIN:
-            partida.lanzarDados();
-            break;
-        case CA.HOSPITAL:
-        case CA.JUSTICIA:
-            partida.evaluarHospitalYJusticia(jugador,casilla);
-            break;
-        case CA.AUMENTO_SUELDO:
-            jugador.aumentarSueldo();
-            partida.finalizarTurno();
-            partida.escribirNota(`@j${jugador.id} ha recibido una nueva Tarjeta de sueldo`);
-            break;
-        case CA.OPORTUNIDAD: //Comprar inversiones Celestes
-            partida.evaluarOportunidadOferta(jugador,"c",casilla);
-            break;                        
-        case CA.OFERTA: //Comprar inversiones Rosadas Mitad de Precio
-            partida.evaluarOportunidadOferta(jugador,"r",casilla);
-            break;
-        case CA.INFLACION : //Pierde la mitad de su dinero efectivo
-            const devuelto = jugador.aplicarInflacion();
-            partida.escribirNota(`@j${jugador.id} ha perdido @d${devuelto} de su dinero efectivo`);
-            partida.finalizarTurno();
-            break;
-        case CA.MORATORIA:
-            const cantidad = jugador.recuperarPagares();
-            if(cantidad>0){
-                partida.escribirNota(`@j${jugador.id} ha recuperado ${cantidad} de sus pagares`);
-            }else{
-                partida.escribirNota(`@j${jugador.id} no ha usado ninguno de sus pagares`);
-            }
-            partida.finalizarTurno();
-            break;
-        case CA.DEPRESION:
-            partida.evaluarDepresion(jugador);
-            break;                 
-        case CA.FUSION:
-            partida.evaluarFusion(jugador);
-            break;                        
-        case CA.PAGUE_IMPUESTO:
-            // $this->evaluarPagoImpuestos($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarPagoImpuestos");
-            partida.finalizarTurno();
-            break;
-        case CA.GANA_JUICIO:
-            // $this->evaluarGanaJuicio($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarGanaJuicio");
-            partida.finalizarTurno();
-            break;
-        case CA.PAGUE_DIVIDENDOS: // PAGAR 20 A CADA JUGADOR
-            // $this->evaluarPagarDividendos($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarPagarDividendos");
-            partida.finalizarTurno();
-            break;                        
-        case CA.PERDIO_TRABAJO:
-            // $jugador->perderTrabajo($idjugador,$cnn);
-            partida.finalizarTurno();
-            partida.escribirNota(`@j${jugador.id} ha perdido todas sus tarjetas de sueldo`);
-            break;                        
-        case CA.BONANZAS:
-        case CA.DIO_EN_LA_VETA:
-            evaluarRegalosDelBanco(jugador,40);
-            partida.finalizarTurno();
-            break;                                                
-        case CA.EXCELENTE_COSECHA:
-            evaluarRegalosDelBanco(jugador,20);
-            partida.finalizarTurno();
-            break;
-        case CA.FRACASO:
-            // $this->evaluarFracaso($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarFracaso");
-            partida.finalizarTurno();
-            break;
-        case CA.ESTA_PERDIDO: //ESTA PERDIDO
-            // $this->evaluarEstaPerdido($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarEstaPerdido");
-            partida.finalizarTurno(); 
-            break;
-        default: //avanzar o retroceder
-            const ruta = casilla.rutaEspecial;
-            if(ruta){
-                const rutaE = casilla.rutaEspecial;
-                partida.iniciarCaminata(new Ruta(rutaE.ruta,rutaE.nm));
-            }else{
-                enviarError(jugador.wsclient,`casilla ${casilla.id} no tiene un ruta especial`);
-            }
-            break;
-    }
-}
-function evaluarRegalosDelBanco(jugador, monto) {
-    const partida = jugador.partida;       
-    jugador.cobrarDinero(monto);
-    partida.escribirNota(`@j${jugador.id} ha cobrado @d${monto} al Banco`);
-    if(!partida.evaluarGanador()){
-        partida.finalizarTurno();
-    }
 }
 function validarJugador(msg,ws){
     let ja = jugFact.getByToken(msg.token);

@@ -3,6 +3,7 @@ const Tablero = require("./tablero");
 const Rutas = require("./rutas");
 const {PE,TABLA_DADOS,DIAG_TIPO,CA, CA_TIPO} = require("./valores");
 const Dialogo = require("./dialogo");
+const Ruta = require("./ruta");
 
 class Partida {
     static PQT_COMPLETO             =   1;
@@ -475,6 +476,121 @@ class Partida {
       this.escribirNota(`@j${jugador.id} ha intercambiado ${titulo0.nombre} por ${titulo1.nombre}`);
       this.fusionT0 = undefined;
       this.fusionT1 = undefined;
+    }
+    evaluarPagoImpuestos(jugador){
+      const numTitulos = jugador.getNumTitulos();
+      if(numTitulos==0){
+          this.escribirNota(`@j${jugador.id} no posee títulos para pagar tributos`);
+          this.finalizarTurno();
+          return;
+      }
+      const montoPago = numTitulos*this.reglas.tributos;
+      const acreedores = []; //se le debe pagar al banco
+      const resultado = jugador.pagar(acreedores, montoPago);
+      const dialogo = new Dialogo(this);
+      if(resultado){ //se la logrado pagar la deuda
+          dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR, {texto: resultado});
+          this.escribirNota(resultado);
+      }else{ //no se pudo pagar la deuda. Insolvente
+          dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:acreedores, deuda: montoPago});          
+      }      
+    }
+    evaluarCierreComodin(casilla, jugador) {
+      const partida = jugador.partida;
+      switch (casilla.id) {
+        case CA.VOLVER_TIRAR_DADOS_INI: 
+        case CA.VOLVER_TIRAR_DADOS_FIN:
+          this.lanzarDados();
+          break;
+        case CA.HOSPITAL:
+        case CA.JUSTICIA:
+          this.evaluarHospitalYJusticia(jugador,casilla);
+          break;
+        case CA.AUMENTO_SUELDO:
+          jugador.aumentarSueldo();
+          this.finalizarTurno();
+          this.escribirNota(`@j${jugador.id} ha recibido una nueva Tarjeta de sueldo`);
+          break;
+        case CA.OPORTUNIDAD: //Comprar inversiones Celestes
+          this.evaluarOportunidadOferta(jugador,"c",casilla);
+          break;
+        case CA.OFERTA: //Comprar inversiones Rosadas Mitad de Precio
+          this.evaluarOportunidadOferta(jugador,"r",casilla);
+          break;
+        case CA.INFLACION : //Pierde la mitad de su dinero efectivo
+          const devuelto = jugador.aplicarInflacion();
+          this.escribirNota(`@j${jugador.id} ha perdido @d${devuelto} de su dinero efectivo`);
+          this.finalizarTurno();
+          break;
+        case CA.MORATORIA:
+          const cantidad = jugador.recuperarPagares();
+          if(cantidad>0){
+              this.escribirNota(`@j${jugador.id} ha recuperado ${cantidad} de sus pagares`);
+          }else{
+              this.escribirNota(`@j${jugador.id} no ha usado ninguno de sus pagares`);
+          }
+          this.finalizarTurno();
+          break;
+        case CA.DEPRESION:
+          thia.evaluarDepresion(jugador);
+            break;                 
+        case CA.FUSION:
+          this.evaluarFusion(jugador);
+          break;                        
+        case CA.PAGUE_IMPUESTO:
+          this.evaluarPagoImpuestos(jugador);
+          break;
+        case CA.GANA_JUICIO:
+            // $this->evaluarGanaJuicio($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarGanaJuicio");
+            this.finalizarTurno();
+            break;
+        case CA.PAGUE_DIVIDENDOS: // PAGAR 20 A CADA JUGADOR
+            // $this->evaluarPagarDividendos($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarPagarDividendos");
+            this.finalizarTurno();
+            break;                        
+        case CA.PERDIO_TRABAJO:
+            // $jugador->perderTrabajo($idjugador,$cnn);
+            this.finalizarTurno();
+            this.escribirNota(`@j${jugador.id} ha perdido todas sus tarjetas de sueldo`);
+            break;                        
+        case CA.BONANZAS:
+        case CA.DIO_EN_LA_VETA:
+            this.evaluarRegalosDelBanco(jugador,40);
+            this.finalizarTurno();
+            break;                                                
+        case CA.EXCELENTE_COSECHA:
+            this.evaluarRegalosDelBanco(jugador,20);
+            this.finalizarTurno();
+            break;
+        case CA.FRACASO:
+            // $this->evaluarFracaso($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarFracaso");
+            this.finalizarTurno();
+            break;
+        case CA.ESTA_PERDIDO: //ESTA PERDIDO
+            // $this->evaluarEstaPerdido($idpartida,$idjugador,$cnn);
+            console.log("pendiente: evaluarEstaPerdido");
+            this.finalizarTurno(); 
+            break;
+        default: //avanzar o retroceder
+            const ruta = casilla.rutaEspecial;
+            if(ruta){
+                const rutaE = casilla.rutaEspecial;
+                this.iniciarCaminata(new Ruta(rutaE.ruta,rutaE.nm));
+            }else{
+                return `casilla ${casilla.id} no tiene un ruta especial`;
+            }
+            break;
+      }
+    }
+    evaluarRegalosDelBanco(jugador, monto) {
+      jugador.cobrarDinero(monto);
+      this.escribirNota(`@j${jugador.id} ha cobrado @d${monto} al Banco`);
+      if(!this.evaluarGanador()){
+          this.finalizarTurno();
+      }
     }
     escribirNota(msj){
       const ahora = new Date();
