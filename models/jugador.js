@@ -245,16 +245,13 @@ class Jugador{
      * @tipo uno de CA_TIPO.TITULO_INVR,CA_TIPO.TITULO_PROF
      */
   getNumTitulos(tipo){
-    console.log(`getNumTitulos: tipo=${tipo}`);
     let numTitulos = 0;
     this.titulos.forEach( t => {
       const tInfo = this.partida.tablero.casillerosDef.items[t.id];
       if(tipo==undefined||tInfo.tipo == tipo){
         numTitulos+=t.num;
-        console.log(`getNumTitulos: sumando=${t.num}`);
       }
     });
-    console.log(`getNumTitulos: total=${numTitulos}`);
     return numTitulos;
   }  
   comprarTitulo(idtitulo,mitadPrecio){
