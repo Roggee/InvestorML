@@ -291,6 +291,7 @@ class Partida {
       const jEnDescanso = this.jugadorActual.terminarTurno();
       if(!jEnDescanso) {
         this.estado = PE.INICIO_TURNO;
+        return this.jugadorActual;
       }
       else{        
         console.log(`El jugador ${jEnDescanso.nombre} está descansando`);
@@ -496,7 +497,6 @@ class Partida {
       }      
     }
     evaluarCierreComodin(casilla, jugador) {
-      const partida = jugador.partida;
       switch (casilla.id) {
         case CA.VOLVER_TIRAR_DADOS_INI: 
         case CA.VOLVER_TIRAR_DADOS_FIN:
@@ -544,10 +544,8 @@ class Partida {
           this.evaluarGanaJuicio(jugador);
           break;
         case CA.PAGUE_DIVIDENDOS: // PAGAR 20 A CADA JUGADOR
-            // $this->evaluarPagarDividendos($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarPagarDividendos");
-            this.finalizarTurno();
-            break;                        
+          this.evaluarPagarDividendos(jugador);
+          break;                        
         case CA.PERDIO_TRABAJO:
             // $jugador->perderTrabajo($idjugador,$cnn);
             this.finalizarTurno();
@@ -600,12 +598,34 @@ class Partida {
           dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR, {texto: resultado});
           this.escribirNota(resultado);
       }else{ //no se pudo pagar la deuda. Insolvente
-          //$variable->guardar($idpartida, "acreedores", json_encode($acreedores), $cnn);
-          //$variable->guardar($idpartida, "deuda",$montoPago, $cnn);
           this.jbk = jugador;
           this.jugadorActual = jSiguiente;
           dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jSiguiente.id, idacreedores:[jugador.id], deuda: montoPago});
       }        
+    }
+    evaluarPagarDividendos(jugador) {
+      //calcular todos los jugjugadoradores a los que se les pagará
+      const acreedores = [];
+      const idacreedores = [];
+      let jSiguiente = this.getJugadorSiguiente(jugador.orden);
+      while(jSiguiente.id!=jugador.id){
+          if(jSiguiente.turnosDescanso==0){
+            acreedores.push(jSiguiente);
+            idacreedores.push(jSiguiente.id);
+          }
+          jSiguiente = this.getJugadorSiguiente(jSiguiente.orden);
+      }
+      //efectuar pago
+      const montoPago = 20;
+      const montoTotal = montoPago*idacreedores.length;
+      const resultado = jugador.pagar(acreedores, montoPago);
+      const dialogo = new Dialogo(this);
+      if(resultado){ //se la logrado pagar la deuda
+          dialogo.abrir(DIAG_TIPO.PAGO_JUGADOR, {texto: resultado});
+          this.escribirNota(resultado);
+      }else{ //no se pudo pagar la deuda. Insolvente
+          dialogo.abrir(DIAG_TIPO.DECLARAR_BANCAROTA,{iddeudor:jugador.id, idacreedores:idacreedores, deuda: montoTotal});
+      }         
     }    
     evaluarRegalosDelBanco(jugador, monto) {
       jugador.cobrarDinero(monto);
