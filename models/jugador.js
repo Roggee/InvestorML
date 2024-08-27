@@ -381,7 +381,9 @@ class Jugador{
         let nombres="";
         if(pagoReal<=this.efectivo){
             acreedores.forEach(acreedor => {
-                nombres+=`@j${acreedor.id}, `;
+                console.log(`pagar a ${acreedor.nombre}`);
+                console.log(`con id = ${acreedor.id}`);                
+                nombres+=`@j${acreedor.id} , `;
                 acreedor.efectivo+=pago;
                 this.efectivo-=pago;
             });
@@ -466,7 +468,7 @@ class Jugador{
       }
       idsAcreedores.forEach(idacreedor => {
           const acreedor = this.partida.jugadores.find(j => { return j.id == idacreedor});
-          nombres+=`@j${acreedor.id}, `;
+          nombres+=`@j${acreedor.id} , `;
           acreedor.efectivo+=prorateoDeuda;
           recaudado-=prorateoDeuda;
       });
@@ -508,7 +510,7 @@ class Jugador{
     //ubicar el último indices de ","
     const i = nombres.lastIndexOf(",");
     //reemplazar la última "," con " y"
-    if(i>=0) nombres = nombres.substring(0,i)+" y".nombres.substring(i+1);
+    if(i>=0) nombres = `${nombres.substring(0,i)} y ${nombres.substring(i+1)}`;
     
     return nombres;
   }  
