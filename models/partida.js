@@ -547,9 +547,9 @@ class Partida {
           this.evaluarPagarDividendos(jugador);
           break;                        
         case CA.PERDIO_TRABAJO:
-            // $jugador->perderTrabajo($idjugador,$cnn);
-            this.finalizarTurno();
+            jugador.perderTrabajo();
             this.escribirNota(`@j${jugador.id} ha perdido todas sus tarjetas de sueldo`);
+            this.finalizarTurno();
             break;                        
         case CA.BONANZAS:
         case CA.DIO_EN_LA_VETA:
