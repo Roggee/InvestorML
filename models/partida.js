@@ -561,9 +561,7 @@ class Partida {
             this.finalizarTurno();
             break;
         case CA.FRACASO:
-            // $this->evaluarFracaso($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarFracaso");
-            this.finalizarTurno();
+            this.evaluarFracaso(jugador);
             break;
         case CA.ESTA_PERDIDO: //ESTA PERDIDO
             // $this->evaluarEstaPerdido($idpartida,$idjugador,$cnn);
@@ -634,6 +632,16 @@ class Partida {
           this.finalizarTurno();
       }
     }
+    evaluarFracaso(jugador) {
+      const numTitulos = jugador.getNumTitulos();
+      if(numTitulos>0){
+          this.tablero.mostrarTitulosDe(jugador);
+          this.estado = PE.FRACASANDO;
+      }else{
+          this.escribirNota(`@j${jugador.id} no tiene títulos para devolver`);
+          this.finalizarTurno();
+      }        
+    }    
     escribirNota(msj){
       const ahora = new Date();
       const diff = new Date(ahora - this.horaInicio);

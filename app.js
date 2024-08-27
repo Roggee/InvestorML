@@ -474,7 +474,7 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
             }            
             break;
         case PE.FRACASANDO:
-            //$this->evaluarDevuelveTitulo($idpartida,$idjugador,$idcasilla,$cnn);
+            evaluarDevuelveTitulo(jugador,idcasilla);
             partida.transmitir();
             break;
         case PE.DECIDIENDO_SUERTE:
@@ -644,6 +644,14 @@ function evaluarCerrarDialogo(jugador, idg, rc,idObj) {
             partida.finalizarTurno();
             break;
     }
+}
+function evaluarDevuelveTitulo(jugador, idtitulo) {
+    const partida = jugador.partida;
+    jugador.devolverTitulo(idtitulo, 1);
+    partida.tablero.limpiar();
+    const titulo = partida.tablero.casillerosDef.items.find( cd => {return cd.id == idtitulo;});
+    partida.escribirNota(`@j${jugador.id} ha devuelto ${titulo.nombre}`);
+    partida.finalizarTurno();
 }
 function decorarTitulos(titulos,casillerosDefItems) {
     let numero = 0;
