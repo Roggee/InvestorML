@@ -162,12 +162,6 @@ class Tablero{
             c.color = color
         });
     }
-    // public function getCasilla($id,$idpartida,Conexion $cnn){
-    //     $res = $cnn->consultar("SELECT id,color,transparencia, elegible,posInternas FROM mls_tablero WHERE idpartida = $idpartida AND id = $id");
-    //     $row = mysqli_fetch_row($res);
-    //     return ['id' => (int)$row[0], 'color' => $row[1], 'transparencia' => (float)$row[2], 'elegible' => (boolean)$row[3], posInternas=> json_decode($row[4])];
-    // }
-
     /**
      * actualiza las posiciones relativas de las casillas utilizadas por los jugadores en la partida.
      */
@@ -257,14 +251,5 @@ class Tablero{
             ct.transparencia = 1;
         });
     }
-
-    // /**
-    //  * permite que todas las casilla sean elegibles excepto la central(MILLONARIO) y la indicada en $excluir.
-    //  * @param $excluir indicar un id de casilla para que no sea elegible
-    //  */
-    // public function permitirSeleccionGeneral($idpartida,$excluir, $cnn) {
-    //     $ids = $excluir?Casilla::MILLONARIO.",$excluir":strval(Casilla::MILLONARIO);
-    //     $cnn->consultar("UPDATE mls_tablero SET elegible = true WHERE idpartida = $idpartida AND id NOT IN($ids)");        
-    // }
 }
 module.exports = Tablero;
