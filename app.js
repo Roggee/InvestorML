@@ -10,6 +10,7 @@ const PartidaFactory = require("./models/partidaFactory.js");
 const {PE,DIAG_TIPO,DIAG_RSP,CA} = require("./models/valores");
 const Ruta = require('./models/ruta.js');
 const { setTimeout } = require('timers');
+const Jugador = require('./models/jugador.js');
 
 //token secret
 let secret = '1nv3$t0r';
@@ -357,11 +358,11 @@ wss.on('connection', function connection(ws, request) {
             case "takeCredit":
                 ja = validarJugador(msg,ws);
                 if(!ja) return;
-                if(ja.id != ja.partida.jugadorActual.id) {
+                partida = ja.partida;
+                if(ja.id != ja.partida.jugadorActual.id || partida.estado == "T") {
                     enviarError(ws,"No es tu turno!");
                     return;
                 }
-                partida = ja.partida;
                 const creditId = contenido;
                 const res = ja.cobrarPagare(creditId);
                 if(!res) {
@@ -435,7 +436,28 @@ wss.on('connection', function connection(ws, request) {
                     return;
                 }
                 partida.transmitir();
-                break;                
+                break;
+            case "preSelectSite":
+                ja = validarJugador(msg,ws);
+                if(!ja) return;
+                if(ja.id != ja.partida.jugadorActual.id) {
+                    enviarError(ws,"No es tu turno!");
+                    return;
+                }
+                partida = ja.partida;
+                const casillaId = contenido;
+                const diag = partida.dialogos.find( d =>{return d.tipo == DIAG_TIPO.DECIDIENDO_SUERTE});
+                if(casillaId<0||casillaId==70||casillaId>71){
+                    if(diag) diag.contenido.texto1 = undefined;
+                    partida.jlp = undefined; 
+                }else{
+                    const casilla = partida.tablero.casillerosDef.items.find( cd => {return cd.id == casillaId});
+                    const description = (casilla.nombre.toLowerCase() == casilla.texto.toLowerCase()?"":casilla.texto);
+                    if(diag) diag.contenido.texto1 = `${casilla.nombre.toUpperCase()}|${description}`;
+                    partida.jlp = {idc:casillaId,coords:casilla.coords}
+                }
+                partida.transmitir();
+                break;
         }
     });
     ws.on('close', () => {
@@ -478,7 +500,7 @@ function evaluarSeleccionCasilla(jugador,partida,idcasilla){
             partida.transmitir();
             break;
         case PE.DECIDIENDO_SUERTE:
-            //$this->evaluarDecidirSuerte($idpartida,$idjugador,$idcasilla,$cnn);
+            partida.evaluarDecidirSuerte(jugador,idcasilla);
             partida.transmitir();
             break;
     }    
