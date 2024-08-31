@@ -59,7 +59,7 @@ class Partida {
         if (["wsclient","token","casillerosDef","f1","posInternas","horaInicio"].includes(key)) return undefined;
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
-        if (["jugadorActual","ganador","jbk"].includes(key)) return (value?value.id:undefined);
+        if (["jugadorActual","ganador","jbk","jl"].includes(key)) return (value?value.id:undefined);
         return value;
       });
       let copia = JSON.parse(strp);
@@ -215,7 +215,7 @@ class Partida {
       this.transmitir();
       setTimeout(() => {          
         this.jugadorActual.avanzarCaminata(ruta);
-      }, 500);
+      }, 300);
     }
     /**
      * Cambia el estado de la partida a FINALIZANDO_TURNO
@@ -564,9 +564,7 @@ class Partida {
             this.evaluarFracaso(jugador);
             break;
         case CA.ESTA_PERDIDO: //ESTA PERDIDO
-            // $this->evaluarEstaPerdido($idpartida,$idjugador,$cnn);
-            console.log("pendiente: evaluarEstaPerdido");
-            this.finalizarTurno(); 
+            this.evaluarEstaPerdido(jugador);
             break;
         default: //avanzar o retroceder
             const ruta = casilla.rutaEspecial;
@@ -641,7 +639,50 @@ class Partida {
           this.escribirNota(`@j${jugador.id} no tiene títulos para devolver`);
           this.finalizarTurno();
       }        
-    }    
+    }
+    evaluarEstaPerdido(jugador) {
+      const jSiguiente = this.getJugadorSiguiente(jugador.orden);
+      const dialogo = new Dialogo(this);
+      if(jSiguiente.turnosDescanso>0){
+          dialogo.abrir(DIAG_TIPO.NO_ESTA_PERDIDO, {texto:`@j${jSiguiente.id} esta descansando y no puede llevarte a ningún lugar`});
+      }else{
+          //permitir selección de todas las casillas menos la central y la misma 'Esta Perdido'
+          this.tablero.casilleros.forEach( (c,i) => {
+            if([CA.MILLONARIO,CA.ESTA_PERDIDO].includes(i)) return;
+            c.elegible = true;
+          });
+          this.jl = jugador;
+          this.jugadorActual = jSiguiente;
+          dialogo.abrir(DIAG_TIPO.DECIDIENDO_SUERTE, {texto:`@j${jSiguiente.id} debe decidir donde colocar a @j${jugador.id} :`});
+          this.estado = PE.DECIDIENDO_SUERTE;
+      }
+    }
+    evaluarDecidirSuerte(jugador, idcasilla) {      
+      const diag = this.dialogos.find( d =>{return d.tipo == DIAG_TIPO.DECIDIENDO_SUERTE});
+      this.jlp = undefined;
+      if(diag) diag.contenido.texto1 = undefined;
+      if(idcasilla<0||idcasilla==70||idcasilla>71){
+        this.transmitir();
+        return;
+      }
+      //obtener jugador de la suerte y asignarlo como jugador actual
+      if(diag)diag.cerrar();
+      const jugadorActualReal = this.jl;
+      this.jugadorActual = jugadorActualReal;
+      this.jl = undefined;
+      this.jugadorActual.posicion = idcasilla;
+      this.jugadorActual.activarFicha();
+      this.estado = PE.EVALUANDO_DESTINO;
+      this.tablero.limpiar();
+      //extraer datos para nota interna
+      const casilla = this.tablero.casillerosDef.items.find( cd => cd.id == idcasilla);
+      this.escribirNota(`@j${jugador.id} ha enviado a @j${jugadorActualReal.id} a ${casilla.nombre.toUpperCase()}`);
+      this.transmitir();
+      setTimeout( () => {
+        this.tablero.procesarCasilla(this.jugadorActual,false,false,false);
+        this.transmitir();
+      }, 800);      
+    }
     escribirNota(msj){
       const ahora = new Date();
       const diff = new Date(ahora - this.horaInicio);
