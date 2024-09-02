@@ -532,8 +532,8 @@ class Partida {
           this.finalizarTurno();
           break;
         case CA.DEPRESION:
-          thia.evaluarDepresion(jugador);
-            break;                 
+          this.evaluarDepresion(jugador);
+          break;                 
         case CA.FUSION:
           this.evaluarFusion(jugador);
           break;                        
