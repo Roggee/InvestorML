@@ -60,6 +60,7 @@ class Partida {
         if (key=="host") return value.id;
         if (key=="partida") return (value?value.id:undefined);
         if (["jugadorActual","ganador","jbk","jl"].includes(key)) return (value?value.id:undefined);
+        if (key=="mensajes") return value.filter( (_,i) => {return i<5});
         return value;
       });
       let copia = JSON.parse(strp);
